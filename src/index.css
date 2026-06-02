@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  /* 8px spacing scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0b1220;
+  color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px; /* 1rem base */
+  line-height: 1.5;
+}
+
+@layer base {
+  /* Typography scale - mobile first */
+  h1 { @apply text-2xl sm:text-3xl font-bold; }
+  h2 { @apply text-xl sm:text-2xl font-semibold; }
+  h3 { @apply text-lg font-semibold; }
+  h4 { @apply text-base font-semibold; }
+  
+  p { @apply text-base text-slate-300; }
+  small { @apply text-sm text-slate-400; }
+  
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Form elements */
+  input, textarea, select {
+    @apply rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-white;
+    @apply focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500/20;
+  }
+}
+
+@layer components {
+  /* Mobile-first spacing system */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8;
+  }
+
+  /* Cards - Use lg border-radius consistently */
+  .card {
+    @apply rounded-lg border border-slate-800 bg-slate-900;
+  }
+
+  .card-p {
+    @apply p-4 sm:p-6;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2 focus:ring-offset-slate-950;
+  }
+
+  .btn-primary {
+    @apply bg-amber-400 text-black hover:bg-amber-300 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply border border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-600 hover:bg-slate-800 disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply text-slate-200 hover:bg-slate-800 disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1 text-sm;
+  }
+
+  .btn-md {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  /* Badges and status indicators */
+  .badge {
+    @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap;
+  }
+
+  .badge-neutral {
+    @apply bg-slate-800 text-slate-200 border-slate-700;
+  }
+
+  /* Sections with consistent spacing */
+  .section {
+    @apply space-y-4 sm:space-y-6;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}

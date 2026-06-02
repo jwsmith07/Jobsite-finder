@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open Jobsite Finder",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "preLaunchTask": "Start Vite dev server",
+      "webRoot": "${workspaceFolder}/src"
+    }
+  ]
+}
