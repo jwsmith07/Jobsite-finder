@@ -176,6 +176,20 @@ export default function UnderConstructionPage() {
         </div>
 
         <div className="relative mx-auto max-w-5xl px-4 pb-20 text-center sm:px-6 lg:px-8">
+          <div className="mx-auto mb-8 max-w-4xl rounded-lg border border-amber-300/45 bg-slate-950/80 px-5 py-6 shadow-2xl shadow-amber-950/20 backdrop-blur sm:px-8 sm:py-7">
+            <p className="text-2xl font-black uppercase tracking-[0.18em] text-amber-300 drop-shadow sm:text-4xl">
+              🚧 UNDER CONSTRUCTION 🚧
+            </p>
+            <p className="mx-auto mt-5 max-w-2xl text-lg font-bold text-white sm:text-xl">
+              Jobsite Finder is currently under active development.
+            </p>
+            <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
+              This page is a preview of the platform and features being built for our upcoming launch. The full website, interactive jobsite map, contractor dashboards, worker profiles, and hiring tools are coming soon.
+            </p>
+            <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
+              Join our beta waitlist below to be among the first workers, subcontractors, and general contractors to access Jobsite Finder when we launch.
+            </p>
+          </div>
           <p className="inline-flex rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-200">
             Built for the Trades. Powered by Real Jobsites.
           </p>
