@@ -18,7 +18,7 @@ import { PUBLIC_STAGE_OPTIONS, isPublicProjectVisible } from '../../lib/projectS
 import { createWaitlistSignup } from '../../services/waitlistService'
 
 const HERO_LOGO_SRC = '/JobsiteFinderHeroLogo.png'
-const HOMEPAGE_MAP_CENTER = { lat: 55.0, lng: -112.0 }
+const HOMEPAGE_MAP_CENTER = { lat: 54.8, lng: -113.6 }
 const HOMEPAGE_MAP_PADDING = {
   top: 24,
   right: 24,
@@ -77,7 +77,7 @@ function PlatformPreview({ projects }) {
           projects={projects}
           mappedCount={projects.length}
           initialCenter={HOMEPAGE_MAP_CENTER}
-          initialZoom={4}
+          initialZoom={5}
           mapPadding={HOMEPAGE_MAP_PADDING}
           interactive={false}
           showPopups={false}
@@ -242,7 +242,7 @@ export default function UnderConstructionPage() {
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Platform Preview</p>
               <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A modern workforce platform designed specifically for the construction industry.</h2>
               <p className="mt-5 text-lg text-slate-300">
-                Preview the experience: an interactive Canada map, jobsite pins, jobsite cards, and worker profiles built around real construction activity.
+                Preview the experience: an interactive Alberta map, jobsite pins, jobsite cards, and worker profiles built around real construction activity.
               </p>
             </div>
             <PlatformPreview projects={projectsWithCoords} />
