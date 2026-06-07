@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { Hammer, Users, Building2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import PasswordInput from '../../components/auth/PasswordInput'
+import Logo from '../../components/common/Logo'
 import { normalizeTrade, renderTradeOptions } from '../../lib/trades'
 
 const ROLES = [
   {
     id: 'worker',
     label: 'Worker',
-    description: 'Find jobsites and connect with hiring contractors across Alberta.',
+    description: 'Find jobsites and connect with hiring contractors across Canada.',
     icon: <Hammer className="w-7 h-7" />,
   },
   {
@@ -85,6 +86,9 @@ export default function SignUpPage() {
   if (!role) {
     return (
       <div className="mx-auto max-w-lg">
+        <div className="mb-6 flex justify-center">
+          <Logo size="auth" />
+        </div>
         <h1 className="text-2xl font-bold mb-1">Get started</h1>
         <p className="text-sm text-slate-400 mb-6">Choose your account type to continue.</p>
         <div className="flex flex-col gap-3">
@@ -113,6 +117,9 @@ export default function SignUpPage() {
 
   return (
     <div className="mx-auto max-w-md">
+      <div className="mb-6 flex justify-center">
+        <Logo size="auth" />
+      </div>
       <div className="mb-5">
         <button
           onClick={() => { setRole(null); setMessage(null) }}

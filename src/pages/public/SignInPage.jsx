@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import PasswordInput from '../../components/auth/PasswordInput'
-const logo = '/JobsiteFinderLogoSVG.svg'
+import Logo from '../../components/common/Logo'
 
 export default function SignInPage() {
   const navigate = useNavigate()
@@ -41,7 +41,7 @@ export default function SignInPage() {
   return (
     <div className="mx-auto max-w-md">
       <div className="mb-6 flex flex-col items-center gap-2">
-        <img src={logo} alt="Jobsite Finder" className="h-20 w-auto" />
+        <Logo size="auth" />
         <h1 className="text-2xl font-bold">Sign in</h1>
         <p className="text-sm text-slate-400">Welcome back to Jobsite Finder.</p>
       </div>

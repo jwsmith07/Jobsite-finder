@@ -13,9 +13,8 @@ import {
 } from 'lucide-react'
 import PageMeta from '../../components/ui/PageMeta'
 import ProjectMap from '../../components/map/ProjectMap'
+import Logo from '../../components/common/Logo'
 import { createWaitlistSignup } from '../../services/waitlistService'
-
-const HERO_LOGO_SRC = '/JobsiteFinderHeroLogo.png'
 
 const roleOptions = [
   'Trades Worker',
@@ -202,8 +201,8 @@ export default function UnderConstructionPage() {
   return (
     <div className="min-h-screen bg-[#0f1216] text-white">
       <PageMeta
-        title="Jobsite Finder | Canada's Construction Workforce & Jobsite Platform"
-        description="Jobsite Finder is a Canada-wide construction workforce platform connecting workers, contractors, industry partners, and investors through real jobsites."
+        title="Jobsite Finder | Built for the Trades"
+        description="Canada's construction workforce platform. Connect workers, subcontractors, and general contractors through real jobsites across Canada."
       />
 
       <section className="relative overflow-hidden">
@@ -212,11 +211,7 @@ export default function UnderConstructionPage() {
 
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           <div className="mb-10 rounded-lg border border-slate-800/80 bg-slate-950/55 p-4 shadow-2xl shadow-black/25 backdrop-blur sm:p-6">
-            <img
-              src={HERO_LOGO_SRC}
-              alt="Jobsite Finder"
-              className="mx-auto h-auto w-full max-w-5xl object-contain"
-            />
+            <Logo size="hero" imageClassName="mx-auto" />
           </div>
         </div>
 

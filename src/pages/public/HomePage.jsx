@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useProjects } from '../../hooks/useProjects'
 import ProjectMap from '../../components/map/ProjectMap'
+import Logo from '../../components/common/Logo'
 import { formatCurrencyShort } from '../../lib/utils'
 import { PUBLIC_STAGE_OPTIONS, isPublicProjectVisible } from '../../lib/projectStages'
 import { MAJOR_PROJECT_MESSAGE } from '../../lib/projectValue'
@@ -41,8 +42,6 @@ const HOMEPAGE_MAP_PADDING = {
   bottom: 78,
   left: 150,
 }
-const HERO_LOGO_SRC = '/JobsiteFinderHeroLogo.png'
-
 function getHomepagePreviewZoom() {
   return 4
 }
@@ -92,56 +91,61 @@ export default function HomePage() {
 
   return (
     <div className="space-y-12">
-      <section className="relative left-1/2 w-screen -translate-x-1/2 bg-black">
-        <img
-          src={HERO_LOGO_SRC}
-          alt="Jobsite Finder"
-          className="h-auto w-full object-contain"
-        />
-      </section>
-
       {/* Hero */}
-      <section className="grid gap-8 lg:grid-cols-2 lg:items-center">
-        <div className="space-y-5">
-          <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl">
-            Built for the Trades.{' '}
-            <span className="text-amber-400">
-              Powered by Large-Scale Projects.
-            </span>
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(251,191,36,0.18),transparent_30%),radial-gradient(circle_at_86%_18%,rgba(148,163,184,0.14),transparent_24%),linear-gradient(135deg,#0f1216,#151a20_52%,#0f1216)]" />
+        <div
+          className="absolute inset-0 opacity-30 [background-image:repeating-linear-gradient(135deg,transparent_0,transparent_18px,rgba(251,191,36,0.12)_18px,rgba(251,191,36,0.12)_20px)]"
+          aria-hidden="true"
+        />
+
+        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-6 text-center sm:px-6 sm:pt-8 lg:px-8">
+          <div className="mb-10 rounded-lg border border-slate-800/80 bg-slate-950/55 p-4 shadow-2xl shadow-black/25 backdrop-blur sm:p-6">
+            <Logo size="hero" imageClassName="mx-auto" />
+          </div>
+
+          <p className="inline-flex rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-200">
+            Built for the Trades. Powered by Real Jobsites.
+          </p>
+          <h1 className="mx-auto mt-6 max-w-5xl text-4xl font-black leading-tight text-white sm:text-6xl lg:text-7xl">
+            Canada's Construction Workforce & Jobsite Platform
           </h1>
-          <p className="max-w-xl text-base text-slate-300 sm:text-lg">
-            Discover public construction jobsites across Alberta, explore active
-            projects on a map, and connect workers with hiring contractors
-            faster.
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300 sm:text-xl">
+            Connect with real jobsites, hiring contractors, and skilled trades workers through an interactive construction platform.
           </p>
-          <p className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">
-            {MAJOR_PROJECT_MESSAGE}
-          </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               to="/jobsites"
-              className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-5 py-3 text-sm font-extrabold tracking-tight text-black shadow-lg shadow-amber-500/20 ring-1 ring-amber-300 transition hover:bg-amber-300"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300 sm:text-base"
             >
-              Explore Jobsites Map
+              Explore Jobsites
               <ArrowRight size={16} />
             </Link>
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:border-amber-400/50 hover:bg-slate-800"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-950/30 px-6 py-3 text-sm font-bold text-white transition hover:border-amber-300 hover:text-amber-200 sm:text-base"
             >
-              Create Profile
+              Join Beta
             </Link>
           </div>
           {!loading && projectsWithCoords.length > 0 && (
-            <p className="text-sm text-slate-400">
+            <p className="mt-6 text-sm text-slate-400">
               <span className="font-semibold text-amber-300">
                 {projectsWithCoords.length}
               </span>{' '}
-              major projects mapped across Alberta.
+              real jobsites mapped across Canada.
             </p>
           )}
         </div>
+      </section>
 
+      {/* Map preview */}
+      <section className="space-y-4">
+        <div className="text-center">
+          <p className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">
+            {MAJOR_PROJECT_MESSAGE}
+          </p>
+        </div>
         <div className="rounded-3xl border border-slate-800 bg-slate-900 p-3 shadow-2xl">
           <div className="relative h-[380px] overflow-hidden rounded-2xl">
             <ProjectMap
