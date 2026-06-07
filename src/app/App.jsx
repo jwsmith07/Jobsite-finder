@@ -41,8 +41,8 @@ export default function App() {
 
   if (maintenanceMode === null || authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
-        <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-sm text-slate-300">
+      <div className="jf-page-shell flex items-center justify-center px-4">
+        <div className="jf-surface p-6 text-sm text-slate-300">
           Loading Jobsite Finder...
         </div>
       </div>
@@ -62,10 +62,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="jf-page-shell relative flex min-h-screen flex-col overflow-hidden">
+      <div className="jf-hazard-overlay pointer-events-none fixed inset-0 opacity-25" aria-hidden="true" />
       <ScrollToTop />
       <Navbar />
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <ErrorBoundary key={location.pathname}>
           <Outlet />
         </ErrorBoundary>

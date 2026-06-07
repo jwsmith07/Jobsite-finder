@@ -128,7 +128,7 @@ export function getRoleLabel(role) {
 export function getDefaultRouteForRole(role) {
   switch (normalizeRole(role)) {
     case 'worker':
-      return '/worker/dashboard'
+      return '/jobsites'
     case 'gc':
       return '/gc/dashboard'
     case 'sc':

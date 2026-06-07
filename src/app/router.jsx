@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import App from './App'
 
 import HomePageWrapper from '../pages/public/HomePageWrapper'
@@ -27,12 +27,19 @@ import SCCompanyPage from '../pages/sc/SCCompanyPage'
 import SCJobsPage from '../pages/sc/SCJobsPage'
 import SCApplicantsPage from '../pages/sc/SCApplicantsPage'
 import CreateJobsitePage from '../pages/contractor/CreateJobsitePage'
+import NotificationsPage from '../pages/account/NotificationsPage'
+import SettingsPage from '../pages/account/SettingsPage'
 
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminProjectsPage from '../pages/admin/AdminProjectsPage'
 import AdminUsersPage from '../pages/admin/AdminUsersPage'
 import AdminJobsitesPage from '../pages/admin/AdminJobsitesPage'
 import AdminClaimsPage from '../pages/admin/AdminClaimsPage'
+import AdminCompaniesPage from '../pages/admin/AdminCompaniesPage'
+import AdminJobPostingsPage from '../pages/admin/AdminJobPostingsPage'
+import AdminReportsPage from '../pages/admin/AdminReportsPage'
+import GCSubcontractorsPage from '../pages/gc/GCSubcontractorsPage'
+import NotFound from '../pages/not-found'
 
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import RoleRedirect from '../components/auth/RoleRedirect'
@@ -60,6 +67,8 @@ export const router = createBrowserRouter(
         { path: 'onboarding/select-role', element: <SelectRolePage /> },
 
         { path: 'dashboard', element: <RoleRedirect /> },
+        { path: 'notifications', element: protect(['worker', 'sc', 'gc', 'admin'], <NotificationsPage />) },
+        { path: 'settings', element: protect(['worker', 'sc', 'gc', 'admin'], <SettingsPage />) },
 
         { path: 'worker', element: protect(['worker'], <WorkerDashboardPage />) },
         { path: 'worker/dashboard', element: protect(['worker'], <WorkerDashboardPage />) },
@@ -72,6 +81,7 @@ export const router = createBrowserRouter(
         { path: 'gc/company', element: protect(['gc'], <GCCompanyPage />) },
         { path: 'gc/jobs', element: protect(['gc'], <GCJobsPage />) },
         { path: 'gc/applicants', element: protect(['gc'], <GCApplicantsPage />) },
+        { path: 'gc/subcontractors', element: protect(['gc'], <GCSubcontractorsPage />) },
         { path: 'gc/jobsites/create', element: protect(['gc'], <CreateJobsitePage />) },
 
         { path: 'sc', element: protect(['sc'], <SCDashboardPage />) },
@@ -88,10 +98,15 @@ export const router = createBrowserRouter(
 
         { path: 'admin', element: protect(['admin'], <AdminDashboardPage />) },
         { path: 'admin/dashboard', element: protect(['admin'], <AdminDashboardPage />) },
+        { path: 'admin/home-preview', element: <Navigate to="/" replace /> },
         { path: 'admin/projects', element: protect(['admin'], <AdminProjectsPage />) },
+        { path: 'admin/companies', element: protect(['admin'], <AdminCompaniesPage />) },
+        { path: 'admin/job-postings', element: protect(['admin'], <AdminJobPostingsPage />) },
+        { path: 'admin/reports', element: protect(['admin'], <AdminReportsPage />) },
         { path: 'admin/jobsites', element: protect(['admin'], <AdminJobsitesPage />) },
         { path: 'admin/claims', element: protect(['admin'], <AdminClaimsPage />) },
         { path: 'admin/users', element: protect(['admin'], <AdminUsersPage />) },
+        { path: '*', element: <NotFound /> },
       ],
     },
   ],

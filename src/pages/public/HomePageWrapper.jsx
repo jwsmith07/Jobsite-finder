@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getDefaultRouteForRole } from '../../lib/utils'
 import HomePage from './HomePage'
@@ -9,6 +9,7 @@ import HomePage from './HomePage'
  */
 export default function HomePageWrapper() {
   const { user, role, loading, profileLoading } = useAuth()
+  const location = useLocation()
 
   // Wait for both session and profile to load
   if (loading || (user && profileLoading)) {
@@ -17,6 +18,11 @@ export default function HomePageWrapper() {
         Loading...
       </div>
     )
+  }
+
+  // Let signed-in admins/devs preview the public home page from the navbar.
+  if (user && location.state?.showPublicHome) {
+    return <HomePage />
   }
 
   // If authenticated, redirect to dashboard

@@ -38,7 +38,7 @@ export default function AboutPage() {
       <section className="grid gap-6 md:grid-cols-2">
         <FeatureCard
           title="For Workers"
-          body="Instead of searching through disconnected job posts, workers can explore real Alberta construction projects on a live map, view project details, and connect with opportunities tied to active jobsites."
+          body="Instead of searching through disconnected job posts, workers can explore real construction jobsites across Canada on a live map, view project details, and connect with opportunities tied to active jobsites."
         />
         <FeatureCard
           title="For Contractors"
@@ -50,10 +50,10 @@ export default function AboutPage() {
         <h2 className="text-2xl font-bold text-white">What V1 focuses on</h2>
         <p className="mt-2 max-w-3xl text-sm text-slate-400">
           Our first release lays a clean foundation for trades and contractors
-          across Alberta.
+          across Canada.
         </p>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-          <FocusItem label="Alberta large-scale projects" />
+          <FocusItem label="Canada-wide real jobsites" />
           <FocusItem label="Clean project data" />
           <FocusItem label="Map search" />
           <FocusItem label="Worker profiles" />
@@ -72,7 +72,7 @@ export default function AboutPage() {
 
       <section className="rounded-3xl border border-yellow-500/40 bg-yellow-500/10 p-8 text-center">
         <p className="text-2xl font-black text-yellow-300 sm:text-3xl">
-          Built for the Trades. Powered by Large-Scale Projects.
+          Built for the Trades. Powered by Real Jobsites.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link

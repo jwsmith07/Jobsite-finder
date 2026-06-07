@@ -1,12 +1,5 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-
-const links = [
-  { to: '/worker/profile', label: 'My profile', desc: 'Trade, experience, resume' },
-  { to: '/worker/applications', label: 'Applications', desc: 'Jobs you have applied to' },
-  { to: '/worker/saved', label: 'Saved jobs', desc: 'Roles you bookmarked' },
-  { to: '/jobsites', label: 'Browse Jobsites Map', desc: 'Map of public Alberta projects' },
-]
 
 export default function WorkerDashboardPage() {
   const { user, loading } = useAuth()
@@ -27,30 +20,5 @@ export default function WorkerDashboardPage() {
     )
   }
 
-  const name = user.user_metadata?.full_name || user.email
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <p className="text-sm text-yellow-300">Worker</p>
-        <h1 className="mt-1 text-3xl font-black">Welcome, {name}</h1>
-        <p className="mt-2 text-slate-400">
-          Built for the Trades. Powered by Large-Scale Projects.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {links.map((l) => (
-          <Link
-            key={l.to}
-            to={l.to}
-            className="rounded-3xl border border-slate-800 bg-slate-900 p-6 transition hover:border-yellow-400/50"
-          >
-            <h2 className="text-lg font-semibold text-white">{l.label}</h2>
-            <p className="mt-1 text-sm text-slate-400">{l.desc}</p>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
+  return <Navigate to="/jobsites" replace />
 }

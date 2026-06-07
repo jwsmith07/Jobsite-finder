@@ -24,6 +24,12 @@ const LEGACY_COMPANY_FIELDS = `
   description, trades_hired, service_area, verified, created_at
 `
 
+const ADMIN_JOB_FIELDS = `
+  id, title, trade, employment_type, status, created_at, expires_at,
+  positions_count, company:company_profiles(id, company_name),
+  project:projects(id, project_name, city, province)
+`
+
 function withProfileEmails(companies, profiles) {
   const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
   return (companies ?? []).map((company) => ({
@@ -180,6 +186,16 @@ export async function getAllCompanyProfiles() {
   }
 
   return attachCompanyEmails(data ?? [])
+}
+
+export async function getAllJobPosts() {
+  const { data, error } = await supabase
+    .from('job_posts')
+    .select(ADMIN_JOB_FIELDS)
+    .order('created_at', { ascending: false })
+    .range(0, 9999)
+  if (error) throw new Error(`Failed to load job posts: ${error.message}`)
+  return data ?? []
 }
 
 export async function updateCompanyVerification(companyProfileId, verified) {

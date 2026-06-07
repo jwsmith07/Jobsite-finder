@@ -364,7 +364,7 @@ export default function JobsitesPage() {
           setLocating(false)
           setLocationError({
             kind: 'denied',
-            message: 'Showing Alberta projects.',
+            message: 'Showing available projects.',
           })
           return
         }
@@ -708,7 +708,7 @@ export default function JobsitesPage() {
 
   return (
     <div className="relative -mx-4 -my-4 h-[calc(100vh-4rem)] min-h-[620px] overflow-hidden bg-slate-950 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-8 lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-6 lg:gap-y-4 lg:p-6">
-      <h1 className="sr-only">Alberta major construction jobsites</h1>
+      <h1 className="sr-only">Canada construction jobsites</h1>
       <div className="absolute left-4 top-4 z-30 sm:left-6 lg:relative lg:left-auto lg:top-auto lg:z-auto lg:col-start-1 lg:row-start-1">
         <BackButton label="← Back" />
       </div>
@@ -1081,7 +1081,7 @@ function LocationStatusPill({ userLocation, locating, locationError, onRetry, on
   }
 
   if (locationError) {
-    const label = 'Showing Alberta projects'
+    const label = 'Showing available projects'
     const showRetry = locationError.kind !== 'unsupported'
     return (
       <button
