@@ -155,8 +155,14 @@ function getMapPinColor(project) {
 // Build DOM content for a cluster bubble. We translate it down by half its
 // height so the geometric center sits on the lat/lng (default anchor is
 // bottom-center).
-function buildClusterContent(count) {
+function buildClusterContent(count, tone = 'default') {
   const size = count < 10 ? 40 : count < 100 ? 48 : count < 500 ? 56 : 64
+  const isPreviewGreen = tone === 'preview-green'
+  const outerFill = isPreviewGreen ? 'rgba(34,197,94,0.18)' : 'rgba(34,197,94,0.10)'
+  const outerStroke = isPreviewGreen ? 'rgba(74,222,128,0.76)' : 'rgba(22,163,74,0.52)'
+  const innerFill = isPreviewGreen ? '#052e16' : '#111827'
+  const innerStroke = isPreviewGreen ? 'rgba(134,239,172,0.96)' : 'rgba(34,197,94,0.9)'
+  const glow = isPreviewGreen ? 'rgba(34,197,94,0.72)' : 'rgba(34,197,94,0.32)'
   const wrapper = document.createElement('div')
   wrapper.style.width = `${size}px`
   wrapper.style.height = `${size}px`
@@ -164,10 +170,10 @@ function buildClusterContent(count) {
   wrapper.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">
       <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 4}"
-        fill="rgba(34,197,94,0.10)" stroke="rgba(22,163,74,0.52)" stroke-width="2"/>
+        fill="${outerFill}" stroke="${outerStroke}" stroke-width="2"/>
       <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 10}"
-        fill="#111827" stroke="rgba(34,197,94,0.9)" stroke-width="2"
-        filter="drop-shadow(0 0 8px rgba(34,197,94,0.32))"/>
+        fill="${innerFill}" stroke="${innerStroke}" stroke-width="2"
+        filter="drop-shadow(0 0 12px ${glow})"/>
       <text x="50%" y="50%" dy=".35em" text-anchor="middle"
         font-family="Inter,system-ui,sans-serif"
         font-size="${size / 3}" font-weight="800" fill="#ffffff">${count}</text>
@@ -195,12 +201,12 @@ function getMapIdForTheme(mapTheme) {
   return mapTheme === 'dark' ? googleMapsMapIdDark || googleMapsMapId : googleMapsMapId
 }
 
-function buildClusterRenderer() {
+function buildClusterRenderer(tone) {
   return {
     render({ count, position }) {
       return new google.maps.marker.AdvancedMarkerElement({
         position,
-        content: buildClusterContent(count),
+        content: buildClusterContent(count, tone),
         zIndex: 1000 + count,
       })
     },
@@ -428,6 +434,12 @@ export default function ProjectMap({
   interactive = true,
   showPopups = true,
   mapPadding,
+  highlightPaths = ALBERTA_BORDER,
+  highlightFeaturePlaceId,
+  highlightFeatureDisplayName,
+  pinColorOverride,
+  clusterTone = 'default',
+  highlightTone = 'default',
 }) {
   const mapsAuthFailed = useGoogleMapsAuthFailure()
   const normalizedMapTheme = mapTheme === 'light' ? 'light' : 'dark'
@@ -471,7 +483,8 @@ export default function ProjectMap({
   // marker down and rebuilding them. Keyed by project id because that's
   // the stable identity across filter changes.
   const markersByIdRef = useRef(new Map())
-  const albertaPolygonRef = useRef(null)
+  const highlightPolygonRef = useRef(null)
+  const highlightFeatureLayerRef = useRef(null)
   const userMarkerRef = useRef(null)
   const userAccuracyCircleRef = useRef(null)
   const lastCenterTokenRef = useRef(0)
@@ -609,9 +622,13 @@ export default function ProjectMap({
     markersRef.current = []
     markersByIdRef.current.clear()
     clustererRef.current = null
-    if (albertaPolygonRef.current) {
-      albertaPolygonRef.current.setMap(null)
-      albertaPolygonRef.current = null
+    if (highlightPolygonRef.current) {
+      highlightPolygonRef.current.setMap(null)
+      highlightPolygonRef.current = null
+    }
+    if (highlightFeatureLayerRef.current) {
+      highlightFeatureLayerRef.current.style = null
+      highlightFeatureLayerRef.current = null
     }
     if (userMarkerRef.current) {
       userMarkerRef.current.map = null
@@ -714,13 +731,47 @@ export default function ProjectMap({
     }
   }, [isLoaded, mapInstance])
 
-  // Alberta outline (rendered once).
+  // Google Maps vector boundary highlight. This follows Google's own country
+  // boundary geometry, which is much more accurate than a hand-traced polygon.
+  useEffect(() => {
+    if (!isLoaded || !mapInstance || !highlightFeaturePlaceId) return
+    if (typeof mapInstance.getFeatureLayer !== 'function') return
+
+    const featureLayer = mapInstance.getFeatureLayer('COUNTRY')
+    if (!featureLayer) return
+
+    const isCanadaPreview = highlightTone === 'canada-preview'
+
+    featureLayer.style = ({ feature }) => {
+      const matchesPlace = feature.placeId === highlightFeaturePlaceId
+      const matchesName = highlightFeatureDisplayName && feature.displayName === highlightFeatureDisplayName
+      if (!matchesPlace && !matchesName) return null
+
+      return {
+        strokeColor: isCanadaPreview ? '#86efac' : '#facc15',
+        strokeOpacity: 1,
+        strokeWeight: isCanadaPreview ? 5 : 3,
+        fillColor: isCanadaPreview ? '#22c55e' : '#facc15',
+        fillOpacity: isCanadaPreview ? 0.22 : 0.08,
+      }
+    }
+    highlightFeatureLayerRef.current = featureLayer
+
+    return () => {
+      featureLayer.style = null
+      highlightFeatureLayerRef.current = null
+    }
+  }, [highlightFeatureDisplayName, highlightFeaturePlaceId, highlightTone, isLoaded, mapInstance])
+
+  // Region outline (rendered once).
   useEffect(() => {
     if (!isLoaded || !mapInstance) return
-    if (albertaPolygonRef.current) return
+    if (highlightFeaturePlaceId) return
+    if (highlightPolygonRef.current) return
+    if (!Array.isArray(highlightPaths) || highlightPaths.length === 0) return
 
-    albertaPolygonRef.current = new google.maps.Polygon({
-      paths: ALBERTA_BORDER,
+    highlightPolygonRef.current = new google.maps.Polygon({
+      paths: highlightPaths,
       strokeColor: '#facc15',
       strokeOpacity: 0.95,
       strokeWeight: 3,
@@ -732,12 +783,12 @@ export default function ProjectMap({
     })
 
     return () => {
-      if (albertaPolygonRef.current) {
-        albertaPolygonRef.current.setMap(null)
-        albertaPolygonRef.current = null
+      if (highlightPolygonRef.current) {
+        highlightPolygonRef.current.setMap(null)
+        highlightPolygonRef.current = null
       }
     }
-  }, [isLoaded, mapInstance])
+  }, [highlightPaths, isLoaded, mapInstance])
 
   // Markers + clustering. Diffs by project id between updates so pins
   // that are still in the visible set are reused (no DOM tear-down,
@@ -753,7 +804,7 @@ export default function ProjectMap({
         map: mapInstance,
         markers: [],
         algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 14 }),
-        renderer: buildClusterRenderer(),
+        renderer: buildClusterRenderer(clusterTone),
         onClusterClick: interactive ? undefined : () => {},
       })
     }
@@ -771,7 +822,7 @@ export default function ProjectMap({
         // project's stage), swap the pin content in place so the color
         // stays correct without rebuilding the marker.
         if (prev.stageKey !== p._stageKey) {
-          prev.marker.content = buildJobsitePinContent(getMapPinColor(p), p.source_type)
+          prev.marker.content = buildJobsitePinContent(pinColorOverride || getMapPinColor(p), p.source_type)
           prev.stageKey = p._stageKey
         }
         continue
@@ -779,7 +830,7 @@ export default function ProjectMap({
 
       const marker = new google.maps.marker.AdvancedMarkerElement({
         position: { lat: p._lat, lng: p._lng },
-        content: buildJobsitePinContent(getMapPinColor(p), p.source_type),
+        content: buildJobsitePinContent(pinColorOverride || getMapPinColor(p), p.source_type),
         gmpClickable: interactive,
       })
       const projectId = p.id
@@ -820,7 +871,7 @@ export default function ProjectMap({
     }
 
     markersRef.current = Array.from(cache.values(), (e) => e.marker)
-  }, [interactive, isLoaded, mapInstance, validProjects])
+  }, [clusterTone, interactive, isLoaded, mapInstance, pinColorOverride, validProjects])
 
   // One-shot initial-data-load auto-fit. Fires exactly once, the first time
   // mappedCount goes from 0 → >0 (i.e. projects finish loading). For new

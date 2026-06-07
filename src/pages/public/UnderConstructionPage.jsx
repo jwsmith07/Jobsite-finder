@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowDown,
   ArrowRight,
@@ -13,18 +13,9 @@ import {
 } from 'lucide-react'
 import PageMeta from '../../components/ui/PageMeta'
 import ProjectMap from '../../components/map/ProjectMap'
-import { useProjects } from '../../hooks/useProjects'
-import { PUBLIC_STAGE_OPTIONS, isPublicProjectVisible } from '../../lib/projectStages'
 import { createWaitlistSignup } from '../../services/waitlistService'
 
 const HERO_LOGO_SRC = '/JobsiteFinderHeroLogo.png'
-const HOMEPAGE_MAP_CENTER = { lat: 54.8, lng: -113.6 }
-const HOMEPAGE_MAP_PADDING = {
-  top: 24,
-  right: 24,
-  bottom: 78,
-  left: 150,
-}
 
 const roleOptions = [
   'Trades Worker',
@@ -59,6 +50,84 @@ const workCards = [
   },
 ]
 
+const CANADA_MAP_CENTER = { lat: 57.2, lng: -96.5 }
+const CANADA_MAP_PADDING = {
+  top: 48,
+  right: 28,
+  bottom: 46,
+  left: 28,
+}
+const CANADA_GOOGLE_PLACE_ID = 'ChIJ2WrMN9MDDUsRpY9Doiq3a00'
+
+const previewCities = [
+  { city: 'Vancouver', lat: 49.2827, lng: -123.1207, count: 165, spread: 0.95 },
+  { city: 'Calgary', lat: 51.0447, lng: -114.0719, count: 190, spread: 0.82 },
+  { city: 'Edmonton', lat: 53.5461, lng: -113.4938, count: 145, spread: 0.78 },
+  { city: 'Saskatoon', lat: 52.1579, lng: -106.6702, count: 72, spread: 0.56 },
+  { city: 'Regina', lat: 50.4452, lng: -104.6189, count: 58, spread: 0.52 },
+  { city: 'Winnipeg', lat: 49.8951, lng: -97.1384, count: 118, spread: 0.72 },
+  { city: 'Toronto', lat: 43.6532, lng: -79.3832, count: 285, spread: 1.05 },
+  { city: 'Ottawa', lat: 45.4215, lng: -75.6972, count: 104, spread: 0.68 },
+  { city: 'Montreal', lat: 45.5019, lng: -73.5674, count: 205, spread: 0.88 },
+  { city: 'Quebec City', lat: 46.8139, lng: -71.2080, count: 76, spread: 0.58 },
+  { city: 'Halifax', lat: 44.6488, lng: -63.5752, count: 84, spread: 0.55 },
+  { city: 'St. John\'s', lat: 47.5615, lng: -52.7126, count: 46, spread: 0.45 },
+  { city: 'Kelowna', lat: 49.8880, lng: -119.4960, count: 54, spread: 0.44 },
+  { city: 'Victoria', lat: 48.4284, lng: -123.3656, count: 48, spread: 0.38 },
+  { city: 'Hamilton', lat: 43.2555, lng: -79.8720, count: 88, spread: 0.44 },
+  { city: 'Kitchener', lat: 43.4516, lng: -80.4925, count: 64, spread: 0.4 },
+  { city: 'London', lat: 42.9849, lng: -81.2453, count: 56, spread: 0.38 },
+  { city: 'Moncton', lat: 46.0878, lng: -64.7782, count: 42, spread: 0.36 },
+  { city: 'Prince George', lat: 53.9171, lng: -122.7497, count: 74, spread: 0.72 },
+  { city: 'Fort St. John', lat: 56.2524, lng: -120.8464, count: 58, spread: 0.76 },
+  { city: 'Grande Prairie', lat: 55.1707, lng: -118.7884, count: 82, spread: 0.74 },
+  { city: 'Fort McMurray', lat: 56.7267, lng: -111.3790, count: 96, spread: 0.86 },
+  { city: 'Lloydminster', lat: 53.2772, lng: -110.0050, count: 46, spread: 0.5 },
+  { city: 'Thompson', lat: 55.7435, lng: -97.8558, count: 54, spread: 0.82 },
+  { city: 'Brandon', lat: 49.8485, lng: -99.9501, count: 44, spread: 0.44 },
+  { city: 'Thunder Bay', lat: 48.3809, lng: -89.2477, count: 76, spread: 0.7 },
+  { city: 'Sault Ste. Marie', lat: 46.5219, lng: -84.3461, count: 48, spread: 0.48 },
+  { city: 'Sudbury', lat: 46.4917, lng: -80.9930, count: 68, spread: 0.58 },
+  { city: 'North Bay', lat: 46.3091, lng: -79.4608, count: 42, spread: 0.42 },
+  { city: 'Rouyn-Noranda', lat: 48.2399, lng: -79.0200, count: 44, spread: 0.56 },
+  { city: 'Saguenay', lat: 48.4280, lng: -71.0685, count: 58, spread: 0.58 },
+  { city: 'Sept-Iles', lat: 50.2133, lng: -66.3758, count: 46, spread: 0.62 },
+  { city: 'Labrador City', lat: 52.9390, lng: -66.9114, count: 40, spread: 0.68 },
+  { city: 'Goose Bay', lat: 53.3017, lng: -60.3261, count: 42, spread: 0.72 },
+  { city: 'Whitehorse', lat: 60.7212, lng: -135.0568, count: 70, spread: 0.96 },
+  { city: 'Yellowknife', lat: 62.4540, lng: -114.3718, count: 64, spread: 0.98 },
+  { city: 'Iqaluit', lat: 63.7467, lng: -68.5170, count: 42, spread: 0.86 },
+  { city: 'Inuvik', lat: 68.3607, lng: -133.7230, count: 30, spread: 0.72 },
+  { city: 'Rankin Inlet', lat: 62.8091, lng: -92.0853, count: 34, spread: 0.78 },
+  { city: 'Prince Rupert', lat: 54.3150, lng: -130.3208, count: 42, spread: 0.62 },
+  { city: 'Nanaimo', lat: 49.1659, lng: -123.9401, count: 38, spread: 0.38 },
+  { city: 'Charlottetown', lat: 46.2382, lng: -63.1311, count: 34, spread: 0.32 },
+  { city: 'Fredericton', lat: 45.9636, lng: -66.6431, count: 38, spread: 0.38 },
+]
+
+const previewStages = ['Planning', 'Active Construction', 'Near Completion']
+const previewProjects = previewCities.flatMap((city) =>
+  Array.from({ length: city.count }, (_, index) => {
+    const angle = index * 2.399963
+    const distance = Math.sqrt((index % 89) / 89) * city.spread
+    const latOffset = Math.sin(angle) * distance * 0.62
+    const lngOffset = Math.cos(angle) * distance
+    return {
+      id: `preview-${city.city}-${index}`,
+      project_name: `${city.city} Preview Jobsite ${index + 1}`,
+      city: city.city,
+      province: '',
+      stage: previewStages[index % previewStages.length],
+      source_type: index % 4 === 0 ? 'contractor_created' : 'public_project',
+      _hasValidCoords: true,
+      _lat: city.lat + latOffset,
+      _lng: city.lng + lngOffset,
+      _openRolesCount: index % 3 === 0 ? 3 : 0,
+      _openJobs: index % 3 === 0 ? [{ title: 'Trades Workers', trade: 'General Construction' }] : [],
+    }
+  }),
+)
+
 function SectionHeader({ eyebrow, title, text }) {
   return (
     <div className="mx-auto max-w-3xl text-center">
@@ -69,41 +138,29 @@ function SectionHeader({ eyebrow, title, text }) {
   )
 }
 
-function PlatformPreview({ projects }) {
+function PlatformPreview() {
   return (
     <div className="rounded-3xl border border-slate-800 bg-slate-900 p-3 shadow-2xl">
-      <div className="relative h-[460px] overflow-hidden rounded-2xl">
+      <div className="relative h-[460px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
         <ProjectMap
-          projects={projects}
-          mappedCount={projects.length}
-          initialCenter={HOMEPAGE_MAP_CENTER}
-          initialZoom={5}
-          mapPadding={HOMEPAGE_MAP_PADDING}
+          projects={previewProjects}
+          mappedCount={previewProjects.length}
+          initialCenter={CANADA_MAP_CENTER}
+          initialZoom={3}
+          mapPadding={CANADA_MAP_PADDING}
           interactive={false}
           showPopups={false}
+          highlightPaths={[]}
+          highlightFeaturePlaceId={CANADA_GOOGLE_PLACE_ID}
+          highlightFeatureDisplayName="Canada"
+          pinColorOverride="#22c55e"
+          clusterTone="preview-green"
+          highlightTone="canada-preview"
         />
-        <div
-          className="absolute inset-0 z-[5] cursor-default bg-gradient-to-t from-slate-950/28 via-transparent to-slate-950/10"
-          aria-hidden="true"
-        />
-        <div className="absolute bottom-3 left-3 z-10 rounded-xl border border-slate-700/60 bg-slate-950/80 px-3 py-2 backdrop-blur-sm">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Stage</p>
-          <div className="flex flex-col gap-1">
-            {PUBLIC_STAGE_OPTIONS.map(({ label, color }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <svg width="11" height="14" viewBox="0 0 28 36" aria-hidden="true">
-                  <path
-                    d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
-                    fill={color}
-                    stroke="#0f172a"
-                    strokeWidth="1.5"
-                  />
-                  <circle cx="14" cy="14" r="4.5" fill="#0f172a" />
-                </svg>
-                <span className="text-[11px] text-slate-300">{label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/28 via-transparent to-slate-950/5" aria-hidden="true" />
+        <div className="absolute left-3 top-3 rounded-xl border border-amber-300/35 bg-slate-950/80 px-4 py-3 backdrop-blur-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future Coverage</p>
+          <p className="mt-1 text-sm font-black text-green-200">Canada-Wide Construction Ecosystem</p>
         </div>
       </div>
       <p className="mt-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
@@ -114,21 +171,9 @@ function PlatformPreview({ projects }) {
 }
 
 export default function UnderConstructionPage() {
-  const { projects } = useProjects()
   const [form, setForm] = useState({ name: '', email: '', role: 'Trades Worker', message: '' })
   const [status, setStatus] = useState({ type: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
-  const projectsWithCoords = useMemo(
-    () =>
-      projects
-        .filter(isPublicProjectVisible)
-        .filter(
-          (p) =>
-            Number.isFinite(Number(p.latitude)) &&
-            Number.isFinite(Number(p.longitude)),
-        ),
-    [projects],
-  )
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -256,10 +301,10 @@ export default function UnderConstructionPage() {
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Platform Preview</p>
               <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A modern workforce platform designed specifically for the construction industry.</h2>
               <p className="mt-5 text-lg text-slate-300">
-                Preview the experience: an interactive Alberta map, jobsite pins, jobsite cards, and worker profiles built around real construction activity.
+                Preview the experience: a Canada-wide map, glowing jobsite clusters in major cities, jobsite cards, and worker profiles built around real construction activity.
               </p>
             </div>
-            <PlatformPreview projects={projectsWithCoords} />
+            <PlatformPreview />
           </div>
         </section>
 
