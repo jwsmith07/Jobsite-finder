@@ -301,7 +301,7 @@ export default function UnderConstructionPage() {
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Platform Preview</p>
               <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A modern workforce platform designed specifically for the construction industry.</h2>
               <p className="mt-5 text-lg text-slate-300">
-                Preview the experience: a Canada-wide map, glowing jobsite clusters in major cities, jobsite cards, and worker profiles built around real construction activity.
+                Built to connect jobsites, contractors, and skilled workers across Canada through one construction-focused platform.
               </p>
             </div>
             <PlatformPreview />
