@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { getOAuthRedirectUrl } from '../../lib/env'
 import PasswordInput from '../../components/auth/PasswordInput'
 import Logo from '../../components/common/Logo'
 
@@ -30,7 +31,7 @@ export default function SignInPage() {
     setMessage(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: getOAuthRedirectUrl('/dashboard') },
     })
     setLoading(false)
     if (error) {

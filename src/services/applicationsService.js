@@ -46,7 +46,6 @@ async function getCompanyIdForUser(userId) {
 }
 
 async function getCompanyProfileForUser(userId) {
-  console.log('[applicationsService] getCompanyProfileForUser called with userId:', userId)
   if (!userId) {
     const errorMsg = 'No authenticated user.'
     console.error('[applicationsService] getCompanyProfileForUser error:', errorMsg)
@@ -66,7 +65,6 @@ async function getCompanyProfileForUser(userId) {
     console.error('[applicationsService] getCompanyProfileForUser no data:', errorMsg)
     throw new Error(errorMsg)
   }
-  console.log('[applicationsService] getCompanyProfileForUser success:', data)
   return data
 }
 
@@ -142,16 +140,17 @@ export async function applyToJob(userId, jobPostId, values = {}) {
     throw new Error('This job is no longer accepting applications.')
   }
 
-  console.log('[applicationsService] Checking for existing application:', { worker_profile_id: worker.id, job_post_id: jobPostId })
+  const resumeUrl = values.resume_url || worker.resume_url || null
+  if (!resumeUrl) {
+    throw new Error('Upload a resume to your worker profile before applying.')
+  }
 
   // Check if applications table exists first
   const { error: tableCheckError } = await supabase
     .from('applications')
     .select('id')
     .limit(1)
-  if (tableCheckError && tableCheckError.message.includes('relation "public.applications" does not exist')) {
-    console.log('[applicationsService] Applications table does not exist yet, skipping duplicate check')
-  } else {
+  if (!(tableCheckError && tableCheckError.message.includes('relation "public.applications" does not exist'))) {
     const { data: existing, error: existingError } = await supabase
       .from('applications')
       .select('id')
@@ -163,7 +162,6 @@ export async function applyToJob(userId, jobPostId, values = {}) {
       throw new Error(`Failed to check application: ${existingError.message}`)
     }
     if (existing) {
-      console.log('[applicationsService] Application already exists')
       throw new Error('You have already applied to this job.')
     }
   }
@@ -171,7 +169,7 @@ export async function applyToJob(userId, jobPostId, values = {}) {
   const row = {
     job_post_id: jobPostId,
     worker_profile_id: worker.id,
-    resume_url: values.resume_url || worker.resume_url || null,
+    resume_url: resumeUrl,
     message: values.message ?? null,
     status: 'submitted',
     worker_name: worker.full_name || null,
@@ -188,7 +186,6 @@ export async function applyToJob(userId, jobPostId, values = {}) {
     console.error('[applicationsService] Application insert error:', error.message)
     throw new Error(`Failed to apply: ${error.message}`)
   }
-  console.log('[applicationsService] Application created:', data?.id)
   return data
 }
 
@@ -236,11 +233,9 @@ export async function getMyApplications(userId) {
 }
 
 export async function getApplicantsForMyCompany(userId) {
-  console.log('[applicationsService] Starting getApplicantsForMyCompany for userId:', userId)
   let companyProfile
   try {
     companyProfile = await getCompanyProfileForUser(userId)
-    console.log('[applicationsService] companyProfile:', companyProfile)
   } catch (error) {
     console.error('[applicationsService] Error getting companyProfile:', error.message)
     throw error
@@ -259,20 +254,15 @@ export async function getApplicantsForMyCompany(userId) {
       throw new Error(`Failed to load company jobs: ${jobsError.message}`)
     }
     jobs = data ?? []
-    console.log('[applicationsService] jobPosts:', jobs)
   } catch (error) {
     console.error('[applicationsService] Error in job posts query:', error.message)
     throw error
   }
 
   const jobIds = jobs.map((j) => j.id)
-  console.log('[applicationsService] jobIds:', jobIds)
   if (jobIds.length === 0) {
-    console.log('[applicationsService] No job posts for this company')
     return []
   }
-
-  console.log('[applicationsService] Fetching applicants for', jobIds.length, 'job posts')
 
   // First check if applications table exists
   try {
@@ -283,7 +273,6 @@ export async function getApplicantsForMyCompany(userId) {
     if (tableError) {
       console.error('[applicationsService] Applications table check error:', tableError)
       if (tableError.message.includes('relation "public.applications" does not exist')) {
-        console.log('[applicationsService] Applications table does not exist, returning empty array')
         return []
       }
       throw tableError
@@ -309,7 +298,6 @@ export async function getApplicantsForMyCompany(userId) {
       throw new Error(`Failed to load applicants: ${error.message}`)
     }
     applications = data ?? []
-    console.log('[applicationsService] applications:', applications)
   } catch (error) {
     console.error('[applicationsService] Error in applications query:', error.message)
     throw error

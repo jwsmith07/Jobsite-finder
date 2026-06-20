@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Hammer, Users, Building2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { getOAuthRedirectUrl } from '../../lib/env'
 import PasswordInput from '../../components/auth/PasswordInput'
 import Logo from '../../components/common/Logo'
 import { normalizeTrade, renderTradeOptions } from '../../lib/trades'
@@ -75,7 +76,7 @@ export default function SignUpPage() {
     setMessage(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: getOAuthRedirectUrl('/') },
     })
     setLoading(false)
     if (error) {

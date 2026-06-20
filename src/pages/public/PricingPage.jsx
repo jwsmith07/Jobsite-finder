@@ -16,7 +16,7 @@ const workerPlan = {
 const subcontractorPlans = [
   {
     plan: 'SC Basic',
-    price: '$199 CAD/month',
+    price: 'Free Beta Access',
     jobsites: 'Up to 2 jobsites',
     features: [
       'Company profile',
@@ -28,7 +28,7 @@ const subcontractorPlans = [
   },
   {
     plan: 'SC Pro',
-    price: '$399 CAD/month',
+    price: 'Coming Soon',
     jobsites: 'Up to 5 jobsites',
     popular: true,
     features: [
@@ -41,7 +41,7 @@ const subcontractorPlans = [
   },
   {
     plan: 'SC Enterprise',
-    price: '$999 CAD/month',
+    price: 'Coming Soon',
     jobsites: '10+ jobsites',
     features: [
       'Everything in Pro',
@@ -57,7 +57,7 @@ const subcontractorPlans = [
 const generalContractorPlans = [
   {
     plan: 'GC Basic',
-    price: '$399 CAD/month',
+    price: 'Free Beta Access',
     jobsites: 'Up to 2 jobsites',
     features: [
       'Company profile',
@@ -70,7 +70,7 @@ const generalContractorPlans = [
   },
   {
     plan: 'GC Pro',
-    price: '$699 CAD/month',
+    price: 'Coming Soon',
     jobsites: 'Up to 5 jobsites',
     popular: true,
     features: [
@@ -84,7 +84,7 @@ const generalContractorPlans = [
   },
   {
     plan: 'GC Enterprise',
-    price: '$1,499+ CAD/month',
+    price: 'Coming Soon',
     jobsites: '10+ jobsites',
     features: [
       'Everything in Pro',
@@ -193,11 +193,14 @@ export default function PricingPage() {
             Pricing
           </p>
           <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight text-white sm:text-5xl">
-            Choose the plan that fits your active jobsites
+            Free beta access for construction teams
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
             Jobsite Finder helps workers, subcontractors, and general contractors
             connect through a live map-based construction hiring ecosystem.
+          </p>
+          <p className="mt-3 max-w-3xl text-sm font-semibold text-amber-200">
+            Subscription plans are coming soon. Billing and checkout are not active during beta.
           </p>
           <p className="mt-5 inline-flex rounded-xl bg-amber-400 px-4 py-2 text-sm font-extrabold text-slate-950">
             Worker accounts are always free.
@@ -286,7 +289,7 @@ export default function PricingPage() {
             to="/signup"
             className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-6 py-3 text-sm font-bold text-white transition hover:border-amber-400/60"
           >
-            Contact Sales
+            Request Beta Access
           </Link>
         </div>
       </section>

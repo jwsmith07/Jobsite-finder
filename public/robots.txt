@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /pricing
+Allow: /jobsites
+Allow: /projects/
+Allow: /companies/
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+Allow: /refund-policy
+Allow: /security
+Allow: /accessibility
+
+Disallow: /admin
+Disallow: /gc
+Disallow: /sc
+Disallow: /subcontractor
+Disallow: /worker
+Disallow: /profile
+Disallow: /applications
+Disallow: /saved-jobs
+Disallow: /notifications
+Disallow: /settings
+Disallow: /login
+Disallow: /signin
+Disallow: /signup
+Disallow: /onboarding
+
+Sitemap: https://jobsitefinder.ca/sitemap.xml

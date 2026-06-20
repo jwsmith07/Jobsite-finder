@@ -7,12 +7,18 @@ import {
   saveWorkerProfile,
 } from '../../services/profilesService'
 import WorkerProfileForm from '../../components/profile/WorkerProfileForm'
-import BackButton from '../../components/ui/BackButton'
-import GlobalCard, { CardHeader, CardContent, CardFooter } from '../../components/ui/GlobalCard'
+import GlobalCard, { CardHeader, CardContent } from '../../components/ui/GlobalCard'
 import GlobalButton from '../../components/ui/GlobalButton'
 import { PageTitle, PageSubtitle, CardTitle, SmallText, Caption } from '../../components/ui/Typography'
 import StatusBadge, { Badge } from '../../components/ui/StatusBadge'
 import { normalizeApprenticeshipLevel, normalizeTrade } from '../../lib/trades'
+import {
+  getAvailabilityLabel,
+  getProfileCertifications,
+  getProfileCompletion,
+  getTalentVisibilityLabel,
+  normalizeList,
+} from '../../lib/workerCredentials'
 
 export default function WorkerProfilePage() {
   const { user, loading: authLoading } = useAuth()
@@ -98,7 +104,6 @@ export default function WorkerProfilePage() {
   if (editing) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <BackButton label="← Back" />
         
         <GlobalCard padding="md">
           <CardHeader
@@ -143,7 +148,6 @@ export default function WorkerProfilePage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <BackButton label="← Back" />
       
       <GlobalCard padding="md">
         <CardHeader
@@ -193,6 +197,10 @@ function ProfileDisplay({ profile, userId, onEdit }) {
   const primaryTrade = normalizeTrade(profile.trade)
   const secondaryTrade = normalizeTrade(profile.secondary_trade)
   const apprenticeshipLevel = normalizeApprenticeshipLevel(profile.apprenticeship_level)
+  const certifications = getProfileCertifications(profile)
+  const workPreferences = normalizeList(profile.work_preferences)
+  const preferredRegions = normalizeList(profile.preferred_regions)
+  const completion = getProfileCompletion(profile)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -212,6 +220,44 @@ function ProfileDisplay({ profile, userId, onEdit }) {
             {profile.phone && <Caption>{profile.phone}</Caption>}
           </div>
         </div>
+      </GlobalCard>
+
+      <GlobalCard padding="md">
+        <CardHeader
+          title="Profile Completion"
+          subtitle="A complete profile helps hiring companies evaluate you faster."
+        />
+        <CardContent className="mt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-amber-400"
+                style={{ width: `${completion.percent}%` }}
+              />
+            </div>
+            <p className="text-sm font-bold text-amber-300">{completion.percent}% complete</p>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {completion.items.map((item) => (
+              <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3">
+                <SmallText>{item.label}</SmallText>
+                <Badge variant={item.complete ? 'success' : 'warning'}>
+                  {item.complete ? 'Done' : 'Needed'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+          {completion.items.some((item) => !item.complete) && (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+              <Caption>Recommended next steps</Caption>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-100">
+                {completion.items.filter((item) => !item.complete).slice(0, 3).map((item) => (
+                  <li key={item.label}>{item.recommendation}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </CardContent>
       </GlobalCard>
 
       {/* Resume Card */}
@@ -247,10 +293,63 @@ function ProfileDisplay({ profile, userId, onEdit }) {
           {apprenticeshipLevel && (
             <SmallText>{apprenticeshipLevel}</SmallText>
           )}
+          {profile.trade_level && <SmallText>{profile.trade_level}</SmallText>}
           <SmallText>
             {profile.experience_years ? `${profile.experience_years} years` : 'Experience not specified'}
           </SmallText>
           {profile.bio && <SmallText className="mt-2">{profile.bio}</SmallText>}
+        </CardContent>
+      </GlobalCard>
+
+      <GlobalCard padding="md">
+        <CardHeader title="Certifications & Resume Status" />
+        <CardContent className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+            <Caption>Trade</Caption>
+            <SmallText>{primaryTrade || 'Not specified'}</SmallText>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+            <Caption>Years Experience</Caption>
+            <SmallText>{profile.experience_years ? `${profile.experience_years} years` : 'Not specified'}</SmallText>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+            <Caption>Certifications</Caption>
+            <SmallText>{certifications.length ? certifications.join(', ') : 'Not specified'}</SmallText>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+            <Caption>Resume</Caption>
+            <SmallText>{profile.resume_url ? 'Uploaded' : 'Not uploaded'}</SmallText>
+          </div>
+        </CardContent>
+      </GlobalCard>
+
+      <GlobalCard padding="md">
+        <CardHeader title="Structured Availability & Preferences" />
+        <CardContent className="mt-3 space-y-4">
+          <div>
+            <Caption>Availability</Caption>
+            <SmallText>{getAvailabilityLabel(profile.availability_status)}</SmallText>
+          </div>
+          <div>
+            <Caption>Talent Discovery Visibility</Caption>
+            <SmallText>{getTalentVisibilityLabel(profile.talent_visibility)}</SmallText>
+          </div>
+          <div>
+            <Caption>Work Preferences</Caption>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(workPreferences.length ? workPreferences : ['Not specified']).map((item) => (
+                <Badge key={item} variant={workPreferences.length ? 'accent' : 'neutral'}>{item}</Badge>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Caption>Preferred Regions</Caption>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(preferredRegions.length ? preferredRegions : ['Not specified']).map((item) => (
+                <Badge key={item} variant={preferredRegions.length ? 'accent' : 'neutral'}>{item}</Badge>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </GlobalCard>
 

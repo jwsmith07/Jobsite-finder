@@ -53,6 +53,25 @@ export default function CompanyProfileForm({
         </div>
 
         <div className="sm:col-span-2">
+          <label className={labelCls}>Contact email</label>
+          <input
+            type="email"
+            className={inputCls}
+            value={values.email}
+            onChange={(e) => set('email', e.target.value)}
+            required
+            placeholder="info@company.com"
+          />
+        </div>
+      </div>
+
+      <details className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+        <summary className="cursor-pointer text-sm font-bold text-white">
+          Additional Information
+        </summary>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
           <CompanyLogoUploader
             userId={userId}
             value={values.logo_url}
@@ -79,19 +98,9 @@ export default function CompanyProfileForm({
             placeholder="780-555-0100"
           />
         </div>
-        <div>
-          <label className={labelCls}>Email</label>
-          <input
-            type="email"
-            className={inputCls}
-            value={values.email}
-            onChange={(e) => set('email', e.target.value)}
-            placeholder="info@company.com"
-          />
         </div>
-      </div>
 
-      <div>
+        <div className="mt-5">
         <label className={labelCls}>Description</label>
         <textarea
           rows={5}
@@ -100,9 +109,9 @@ export default function CompanyProfileForm({
           onChange={(e) => set('description', e.target.value)}
           placeholder="Tell trades and partners what your company does."
         />
-      </div>
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Trades hired</label>
           <input
@@ -121,7 +130,8 @@ export default function CompanyProfileForm({
             placeholder="Edmonton, Calgary, all of Alberta..."
           />
         </div>
-      </div>
+        </div>
+      </details>
 
       <button
         type="submit"

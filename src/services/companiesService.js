@@ -11,6 +11,30 @@ export async function getMyCompanyProfile(userId) {
   return normalizeCompanyProfile(data)
 }
 
+export async function getPublicCompanyProfile(companyId) {
+  if (!companyId) return null
+  let result = await supabase
+    .from('company_profiles')
+    .select('id, company_name, company_type, logo_url, description, trades_hired, service_area, website, website_url, phone, phone_number, email, contact_email, verified, is_hidden')
+    .eq('id', companyId)
+    .eq('verified', true)
+    .maybeSingle()
+
+  if (result.error && String(result.error.message || '').includes("'is_hidden' column")) {
+    result = await supabase
+      .from('company_profiles')
+      .select('id, company_name, company_type, logo_url, description, trades_hired, service_area, website, website_url, phone, phone_number, email, contact_email, verified')
+      .eq('id', companyId)
+      .eq('verified', true)
+      .maybeSingle()
+  }
+
+  if (result.error) throw new Error(`Failed to load company profile: ${result.error.message}`)
+  const profile = normalizeCompanyProfile(result.data)
+  if (!profile || profile.is_hidden === true) return null
+  return profile
+}
+
 async function tryUpsertCompanyProfile(row) {
   return supabase
     .from('company_profiles')

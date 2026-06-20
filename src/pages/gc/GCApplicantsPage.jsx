@@ -5,7 +5,6 @@ import {
   getApplicantsForMyCompany,
   updateApplication,
 } from '../../services/applicationsService'
-import BackButton from '../../components/ui/BackButton'
 import GlobalCard, { CardHeader, CardContent, CardFooter } from '../../components/ui/GlobalCard'
 import GlobalButton from '../../components/ui/GlobalButton'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -38,14 +37,9 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
     if (!user) return
     setLoading(true)
     setError(null)
-    console.log('[GCApplicantsPage] Loading applicants for user:', user)
     try {
       const data = await getApplicantsForMyCompany(user.id)
-      console.log('[GCApplicantsPage] Loaded applicants:', data)
       setItems(data)
-      if (!data || data.length === 0) {
-        console.log('[GCApplicantsPage] No applicant rows returned for current company jobs')
-      }
       const notesObj = {}
       data.forEach(a => {
         notesObj[a.id] = a.company_notes || ''
@@ -69,10 +63,8 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
   async function handleSave(id, status, company_notes) {
     if (!user) return
     setBusyId(id)
-    console.log('[GCApplicantsPage] Updating application:', { id, status, company_notes })
     try {
       await updateApplication(id, user.id, { status, company_notes })
-      console.log('[GCApplicantsPage] Application updated successfully')
       await load()
     } catch (err) {
       console.error('[GCApplicantsPage] Update error:', err.message)
@@ -106,7 +98,6 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <BackButton label="← Back" />
       
       <GlobalCard padding="md">
         <CardHeader

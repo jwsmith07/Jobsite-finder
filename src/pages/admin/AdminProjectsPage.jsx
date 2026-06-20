@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import DashboardShell from '../../components/layout/DashboardShell'
-import BackButton from '../../components/ui/BackButton'
 import ProjectImageManager from '../../components/projects/ProjectImageManager'
 import { useAuth } from '../../hooks/useAuth'
 import { getAllProjects, updateProject } from '../../services/adminService'
 import { formatDate, formatCurrencyShort } from '../../lib/utils'
+import { getEligibilityReason } from '../../lib/projectEligibility'
 
 const inputCls =
   'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400'
@@ -32,6 +32,8 @@ export default function AdminProjectsPage() {
           status: p.status || '',
           is_active: !!p.is_active,
           is_public_project: !!p.is_public_project,
+          map_eligible: !!p.map_eligible,
+          eligibility_reason: p.eligibility_reason || getEligibilityReason(p),
           display_address: p.display_address || '',
           site_access_notes: p.site_access_notes || '',
           gate_entrance: p.gate_entrance || '',
@@ -75,7 +77,6 @@ export default function AdminProjectsPage() {
       title="Admin · Projects"
       subtitle="Edit visibility and lifecycle for projects shown on the map."
     >
-      <BackButton label="← Back" />
       {message && (
         <div
           className={`rounded-2xl border p-4 text-sm ${
@@ -157,7 +158,19 @@ export default function AdminProjectsPage() {
                   />
                   Public
                 </label>
+                <label className="flex items-center gap-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={!!d.map_eligible}
+                    onChange={(e) => setDraft(p.id, 'map_eligible', e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-yellow-400"
+                  />
+                  Map eligible
+                </label>
               </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Eligibility: <span className="text-slate-300">{d.eligibility_reason || getEligibilityReason(p)}</span>
+              </p>
 
               <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                 <ProjectImageManager

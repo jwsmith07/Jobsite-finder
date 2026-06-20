@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 
-export const LOGO_SRC = '/assets/logo/jobsitefinder-logo.png'
+export const LOGO_SRC = '/assets/logo/jobsitefinder-logo.png?v=20260615'
 
 const SIZE_STYLES = {
-  header: 'w-[220px] max-w-full',
+  header: 'w-[180px] max-w-full sm:w-[220px] lg:w-[250px]',
   mobileHeader: 'w-[160px] max-w-full',
   auth: 'w-[300px] max-w-full',
   footer: 'w-[180px] max-w-full',

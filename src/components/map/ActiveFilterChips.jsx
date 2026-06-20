@@ -1,11 +1,14 @@
 import { X } from 'lucide-react'
 import { getPublicStageLabel } from '../../lib/projectStages'
 import { PROJECT_VALUE_FILTER_LABELS } from '../../lib/projectValue'
+import { getCanadianRegionLabel } from '../../lib/canadianRegions'
 
 export default function ActiveFilterChips({
+  province,
   stage,
   trade,
   minValue,
+  onClearProvince,
   onClearStage,
   onClearTrade,
   onClearMinValue,
@@ -15,6 +18,14 @@ export default function ActiveFilterChips({
   // chip count and the drawer "Filters" badge always agree.
   const chips = []
 
+  if (province !== 'all') {
+    chips.push({
+      key: 'province',
+      label: `Province: ${getCanadianRegionLabel(province) || province}`,
+      onClear: onClearProvince,
+      testId: 'active-filter-chip-province',
+    })
+  }
   if (stage !== 'all') {
     chips.push({
       key: 'stage',

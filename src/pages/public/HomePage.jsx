@@ -8,7 +8,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import { useProjects } from '../../hooks/useProjects'
-import ProjectMap from '../../components/map/ProjectMap'
+import ProjectMap from '../../components/map/UnifiedProjectMap'
 import Logo from '../../components/common/Logo'
 import { formatCurrencyShort } from '../../lib/utils'
 import { PUBLIC_STAGE_OPTIONS, isPublicProjectVisible } from '../../lib/projectStages'

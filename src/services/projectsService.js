@@ -37,6 +37,7 @@ const PROJECT_FIELDS = `
   is_active,
   is_public_project,
   is_featured,
+  map_eligible,
   project_status_type,
   claimed_by_company_id,
   created_at
@@ -53,6 +54,9 @@ const PROJECT_REVIEW_FIELDS = `
 `
 
 const PROJECT_FIELDS_WITH_REVIEW = `${PROJECT_FIELDS},${PROJECT_REVIEW_FIELDS}`
+
+const PROJECTS_PAGE_SIZE = 1000
+const MAX_PROJECT_ROWS = 50000
 
 const LEGACY_PROJECT_FIELDS = `
   id,
@@ -95,6 +99,7 @@ function isMissingProjectColumn(error) {
     'contractor_location_updated_at',
     'contractor_location_updated_by',
     'project_status_type',
+    'map_eligible',
     'claimed_by_company_id',
     'review_status',
     'is_public',
@@ -129,6 +134,42 @@ function isMissingJobPublicColumn(error) {
     message.includes('column job_posts.is_public does not exist') ||
     message.includes("Could not find the 'is_public' column")
   )
+}
+
+function buildProjectsQuery(fields, from, to, { includeMapEligible = true } = {}) {
+  let query = supabase
+    .from('projects')
+    .select(fields)
+    .eq('is_active', true)
+    .eq('is_public_project', true)
+    .order('project_name', { ascending: true })
+    .range(from, to)
+
+  if (includeMapEligible) query = query.eq('map_eligible', true)
+
+  return query
+}
+
+async function getProjectRowsPage(fields, from, to, options) {
+  return buildProjectsQuery(fields, from, to, options)
+}
+
+async function getAllProjectRows(fields, options = {}) {
+  const rows = []
+
+  for (let from = 0; from < MAX_PROJECT_ROWS; from += PROJECTS_PAGE_SIZE) {
+    const to = Math.min(from + PROJECTS_PAGE_SIZE - 1, MAX_PROJECT_ROWS - 1)
+    const result = await getProjectRowsPage(fields, from, to, options)
+
+    if (result.error) return { data: rows, error: result.error }
+
+    const page = result.data ?? []
+    rows.push(...page)
+
+    if (page.length < PROJECTS_PAGE_SIZE) break
+  }
+
+  return { data: rows, error: null }
 }
 
 function buildOpenJobsQuery(projectIds, { includeStructured = true, includeIsPublic = true } = {}) {
@@ -197,24 +238,14 @@ async function getOpenJobsForProjects(projectIds) {
 }
 
 export async function getProjects() {
-  let projectsResult = await supabase
-    .from('projects')
-    .select(PROJECT_FIELDS_WITH_REVIEW)
-    .eq('is_active', true)
-    .eq('is_public_project', true)
-    .eq('review_status', 'approved')
-    .eq('is_public', true)
-    .order('project_name', { ascending: true })
-    .range(0, 9999)
+  let projectsResult = await getAllProjectRows(PROJECT_FIELDS_WITH_REVIEW, {
+    includeMapEligible: true,
+  })
 
   if (isMissingProjectColumn(projectsResult.error)) {
-    projectsResult = await supabase
-      .from('projects')
-      .select(LEGACY_PROJECT_FIELDS)
-      .eq('is_active', true)
-      .eq('is_public_project', true)
-      .order('project_name', { ascending: true })
-      .range(0, 9999)
+    projectsResult = await getAllProjectRows(LEGACY_PROJECT_FIELDS, {
+      includeMapEligible: false,
+    })
   }
 
   if (projectsResult.error) {

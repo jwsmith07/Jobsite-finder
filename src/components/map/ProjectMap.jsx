@@ -4,44 +4,25 @@ import { Link } from 'react-router-dom'
 import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer'
 import { googleMapsApiKey, googleMapsMapId, googleMapsMapIdDark } from '../../lib/env'
 import { googleMapsDarkStyle } from './mapStyles'
-import { formatCurrencyShort, formatDistanceKm, getContractorDisplayLocation, haversineKm } from '../../lib/utils'
+import CanadaBoundaryLayer from './CanadaBoundaryLayer'
+import { getContractorDisplayLocation } from '../../lib/utils'
 import {
-  HIRING_NOW_TONE,
   PUBLIC_STAGE_TONES,
   getPublicStageColor,
   getPublicStageKey,
   getPublicStageMeta,
   projectHasHiringPulse,
 } from '../../lib/projectStages'
-import { normalizeTrade } from '../../lib/trades'
 
 const MAP_LIBRARIES = ['marker']
 
 const containerStyle = { width: '100%', height: '100%' }
-const defaultCenter = { lat: 54.5, lng: -113.5 }
-const DEFAULT_DESKTOP_ZOOM = 4
-const DEFAULT_MOBILE_ZOOM = 4
+const defaultCenter = { lat: 48, lng: -105 }
+const DEFAULT_DESKTOP_ZOOM = 2
+const DEFAULT_MOBILE_ZOOM = 2
+const MIN_MAP_ZOOM = 2
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = 'jobsite-finder:google-maps-auth-failure'
 const MAP_THEME_TOGGLE_EVENT = 'jobsite-finder:map-theme-toggle'
-const ALBERTA_BOUNDS = { north: 60, south: 49, west: -120, east: -110 }
-
-const ALBERTA_BORDER = [
-  { lat: 60.0, lng: -120.0 },
-  { lat: 60.0, lng: -110.0 },
-  { lat: 49.0, lng: -110.0 },
-  { lat: 49.0, lng: -114.054 },
-  { lat: 49.616, lng: -114.5 },
-  { lat: 50.0, lng: -114.7 },
-  { lat: 50.5, lng: -115.2 },
-  { lat: 51.0, lng: -115.6 },
-  { lat: 51.5, lng: -116.3 },
-  { lat: 52.0, lng: -117.0 },
-  { lat: 52.5, lng: -117.5 },
-  { lat: 53.0, lng: -118.3 },
-  { lat: 53.5, lng: -119.0 },
-  { lat: 54.0, lng: -119.7 },
-  { lat: 54.5, lng: -120.0 },
-]
 
 function installGoogleMapsAuthFailureHandler() {
   if (typeof window === 'undefined' || window.__jfGoogleMapsAuthHandlerInstalled) return
@@ -68,55 +49,20 @@ function useGoogleMapsAuthFailure() {
   return authFailed
 }
 
-function toAlbertaPercent(lat, lng) {
-  return {
-    left: ((lng - ALBERTA_BOUNDS.west) / (ALBERTA_BOUNDS.east - ALBERTA_BOUNDS.west)) * 100,
-    top: ((ALBERTA_BOUNDS.north - lat) / (ALBERTA_BOUNDS.north - ALBERTA_BOUNDS.south)) * 100,
-  }
-}
-
 function StaticProjectMapFallback({ projects = [], message = 'Google Maps is blocked for this domain.' }) {
   const visibleProjects = projects
     .filter((p) => Number.isFinite(p._lat) && Number.isFinite(p._lng))
-    .slice(0, 90)
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-slate-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(250,204,21,0.12),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,1))]" />
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden="true">
-        <polyline
-          points={ALBERTA_BORDER.map(({ lat, lng }) => {
-            const point = toAlbertaPercent(lat, lng)
-            return `${point.left},${point.top}`
-          }).join(' ')}
-          fill="rgba(250,204,21,0.06)"
-          stroke="rgba(250,204,21,0.75)"
-          strokeWidth="0.9"
-        />
-      </svg>
-      {visibleProjects.map((project) => {
-        const point = toAlbertaPercent(project._lat, project._lng)
-        return (
-          <span
-            key={project.id}
-            className="absolute inline-flex h-4 w-4 items-center justify-center"
-            style={{
-              left: `${point.left}%`,
-              top: `${point.top}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-            title={project.project_name || 'Jobsite'}
-          >
-            <span
-              className="relative h-2.5 w-2.5 rounded-full border border-slate-950 shadow-[0_0_0_2px_rgba(250,204,21,0.18),0_0_12px_rgba(250,204,21,0.35)]"
-              style={{ backgroundColor: getMapPinColor(project) }}
-            />
-          </span>
-        )
-      })}
-      <div className="absolute left-3 right-3 top-3 rounded-xl border border-amber-400/25 bg-slate-950/85 px-3 py-2 text-xs text-slate-200 backdrop-blur">
-        <p className="font-semibold text-amber-200">Fallback map shown</p>
-        <p className="mt-0.5 text-slate-400">{message}</p>
+    <div className="grid h-full w-full place-items-center rounded-2xl border border-dashed border-slate-700 bg-slate-950 p-6 text-center">
+      <div className="max-w-sm">
+        <p className="text-sm font-semibold text-amber-200">Google Map unavailable</p>
+        <p className="mt-2 text-sm text-slate-400">{message}</p>
+        {visibleProjects.length > 0 && (
+          <p className="mt-3 text-xs text-slate-500">
+            {visibleProjects.length} mapped jobsite{visibleProjects.length === 1 ? '' : 's'} will appear when Google Maps loads.
+          </p>
+        )}
       </div>
     </div>
   )
@@ -201,12 +147,76 @@ function getMapIdForTheme(mapTheme) {
   return mapTheme === 'dark' ? googleMapsMapIdDark || googleMapsMapId : googleMapsMapId
 }
 
+function svgDataUrl(svg) {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+}
+
+function buildJobsitePinSvg(color, sourceType) {
+  const isContractorCreated = sourceType === 'contractor_created'
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
+        fill="${color}" stroke="#0f172a" stroke-width="1.5"/>
+      <circle cx="14" cy="14" r="${isContractorCreated ? '5.8' : '4.5'}" fill="${isContractorCreated ? '#2563eb' : '#0f172a'}" stroke="#0f172a" stroke-width="${isContractorCreated ? '1.5' : '0'}"/>
+    </svg>`
+}
+
+function buildJobsiteMarkerIcon(color, sourceType) {
+  return {
+    url: svgDataUrl(buildJobsitePinSvg(color, sourceType)),
+    scaledSize: new google.maps.Size(28, 36),
+    anchor: new google.maps.Point(14, 36),
+  }
+}
+
+function buildClusterSvg(count, tone = 'default') {
+  const size = count < 10 ? 40 : count < 100 ? 48 : count < 500 ? 56 : 64
+  const isPreviewGreen = tone === 'preview-green'
+  const outerFill = isPreviewGreen ? 'rgba(34,197,94,0.18)' : 'rgba(34,197,94,0.10)'
+  const outerStroke = isPreviewGreen ? 'rgba(74,222,128,0.76)' : 'rgba(22,163,74,0.52)'
+  const innerFill = isPreviewGreen ? '#052e16' : '#111827'
+  const innerStroke = isPreviewGreen ? 'rgba(134,239,172,0.96)' : 'rgba(34,197,94,0.9)'
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 4}" fill="${outerFill}" stroke="${outerStroke}" stroke-width="2"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 10}" fill="${innerFill}" stroke="${innerStroke}" stroke-width="2"/>
+      <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${size / 3}" font-weight="800" fill="#ffffff">${count}</text>
+    </svg>`
+}
+
+function buildClusterIcon(count, tone = 'default') {
+  const size = count < 10 ? 40 : count < 100 ? 48 : count < 500 ? 56 : 64
+  return {
+    url: svgDataUrl(buildClusterSvg(count, tone)),
+    scaledSize: new google.maps.Size(size, size),
+    anchor: new google.maps.Point(size / 2, size / 2),
+  }
+}
+
+function buildUserDotIcon() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="6.5" fill="#3b82f6" stroke="#ffffff" stroke-width="3"/>
+    </svg>`
+  return {
+    url: svgDataUrl(svg),
+    scaledSize: new google.maps.Size(16, 16),
+    anchor: new google.maps.Point(8, 8),
+  }
+}
+
+function clearMarker(marker) {
+  if (!marker) return
+  if (typeof marker.setMap === 'function') marker.setMap(null)
+  else marker.map = null
+}
+
 function buildClusterRenderer(tone) {
   return {
     render({ count, position }) {
-      return new google.maps.marker.AdvancedMarkerElement({
+      return new google.maps.Marker({
         position,
-        content: buildClusterContent(count, tone),
+        icon: buildClusterIcon(count, tone),
         zIndex: 1000 + count,
       })
     },
@@ -270,29 +280,24 @@ const NEAREST_JOBSITES_FOR_FAR_FIT = 5
 
 function ProjectMapPopup({
   project,
-  distanceLabel,
   onClose,
-  onApplyNearbyShortcut,
-  nearbyShortcutActive,
-  userLocation,
 }) {
   if (!project) return null
 
   const stageMeta = getPublicStageMeta(project.stage)
-  const openJobs = Array.isArray(project._openJobs) ? project._openJobs : []
   const openRolesCount = getProjectOpenRolesCount(project)
   const isHiring = projectHasHiringPulse(project)
-  const location = getContractorDisplayLocation(project) || 'Alberta'
-  const hasEstimatedValue = project.estimated_value != null && project.estimated_value !== ''
-  const roleLabels = openJobs
-    .map((job) => normalizeTrade(job.trade) || job.title)
-    .filter(Boolean)
-    .slice(0, 3)
-  const ctaLabel = openRolesCount > 0 || openJobs.length > 0 ? 'View Jobs / Apply' : 'View Project'
+  const claimed = !!project.claimed_by_company_id
+  const location = getContractorDisplayLocation(project) || 'Location not listed'
   const primaryImage = project._primaryImage || (project.primary_image_url ? {
     image_url: project.primary_image_url,
     alt_text: `${project.project_name || 'Jobsite'} photo`,
   } : null)
+  const hiringLabel = openRolesCount > 1
+    ? `${openRolesCount} Open Positions`
+    : openRolesCount === 1 || isHiring
+      ? 'Hiring'
+      : 'No Open Positions'
 
   return (
     <div
@@ -327,87 +332,31 @@ function ProjectMapPopup({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
-              project.source_type === 'contractor_created'
-                ? 'border-blue-500/40 bg-blue-500/10 text-blue-200'
-                : 'border-slate-700 bg-slate-950 text-slate-300'
-            }`}>
-              {project.source_type === 'contractor_created' ? 'Contractor Created' : 'Public Project'}
-            </span>
-            {(project.project_status_type === 'verified' || project.claimed_by_company_id) && (
-              <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-200">
-                Contractor Verified
-              </span>
-            )}
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${PUBLIC_STAGE_TONES[stageMeta.key]}`}>
               {stageMeta.label}
             </span>
-            {isHiring && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${HIRING_NOW_TONE}`}>
-                <span className="relative flex h-2 w-2" aria-hidden="true">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-45" />
-                  <span className="relative h-2 w-2 rounded-full bg-green-500" />
-                </span>
-                Hiring Now
-              </span>
-            )}
+            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+              claimed
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                : 'border-slate-700 bg-slate-950 text-slate-300'
+            }`}>
+              {claimed ? 'Claimed' : 'Unclaimed'}
+            </span>
+            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+              isHiring
+                ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                : 'border-slate-700 bg-slate-950 text-slate-300'
+            }`}>
+              {hiringLabel}
+            </span>
           </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-slate-700 bg-[#0b1220] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Est. value
-              </p>
-              <p className="mt-0.5 text-sm font-black text-yellow-200">
-                {hasEstimatedValue ? formatCurrencyShort(project.estimated_value) : 'TBD'}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-700 bg-[#0b1220] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Open roles
-              </p>
-              <p className={`mt-0.5 text-sm font-black ${openRolesCount > 0 ? 'text-green-200' : 'text-slate-300'}`}>
-                {openRolesCount > 0 ? openRolesCount : 'None yet'}
-              </p>
-            </div>
-          </div>
-
-          {roleLabels.length > 0 && (
-            <p className="mt-3 line-clamp-2 text-xs font-semibold text-slate-300">
-              {roleLabels.join(' / ')}
-            </p>
-          )}
-
-          {distanceLabel && (
-            <p className="mt-2 text-[11px] font-semibold text-blue-200">
-              {distanceLabel} from you
-            </p>
-          )}
 
           <Link
             to={`/projects/${project.id}`}
             className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-yellow-200/60 bg-yellow-400 px-3 py-2 text-xs font-black text-slate-950 shadow-[0_12px_24px_rgba(0,0,0,0.45)] transition hover:bg-yellow-300"
           >
-            {ctaLabel}
+            View Project
           </Link>
-
-          {onApplyNearbyShortcut && userLocation && (
-            <button
-              type="button"
-              onClick={() => onApplyNearbyShortcut()}
-              disabled={nearbyShortcutActive}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-blue-300/55 bg-[#0b1b33] px-3 py-2 text-[11px] font-semibold text-blue-100 shadow-[0_10px_20px_rgba(0,0,0,0.35)] transition hover:border-blue-200 hover:bg-[#102646] disabled:cursor-not-allowed disabled:opacity-60"
-              title={
-                nearbyShortcutActive
-                  ? 'Already showing nearest within 25 km'
-                  : 'Sort by nearest and limit to 25 km from you'
-              }
-            >
-              {nearbyShortcutActive
-                ? 'Showing nearest within 25 km'
-                : 'Find more within 25 km'}
-            </button>
-          )}
         </div>
       </div>
       <div className="mx-auto h-3 w-3 rotate-45 border-b border-r border-yellow-400/50 bg-[#07111f] shadow-[6px_6px_18px_rgba(0,0,0,0.65)]" />
@@ -426,15 +375,13 @@ export default function ProjectMap({
   initialZoom,
   onViewChange,
   restoreInitialView = false,
-  onApplyNearbyShortcut,
-  nearbyShortcutActive = false,
   onProjectSelect,
   onBoundsChange,
   mapTheme = 'dark',
   interactive = true,
   showPopups = true,
   mapPadding,
-  highlightPaths = ALBERTA_BORDER,
+  highlightPaths = null,
   highlightFeaturePlaceId,
   highlightFeatureDisplayName,
   pinColorOverride,
@@ -443,18 +390,17 @@ export default function ProjectMap({
 }) {
   const mapsAuthFailed = useGoogleMapsAuthFailure()
   const normalizedMapTheme = mapTheme === 'light' ? 'light' : 'dark'
-  const selectedMapId = getMapIdForTheme(normalizedMapTheme)
+  const selectedMapId = ''
   const normalizedPadding = useMemo(() => normalizeMapPadding(mapPadding), [mapPadding])
   const mapOptions = useMemo(() => {
     const isDark = normalizedMapTheme === 'dark'
     return {
-      ...(selectedMapId ? { mapId: selectedMapId } : {}),
-      colorScheme: isDark ? 'DARK' : 'LIGHT',
       backgroundColor: isDark ? '#17191d' : '#e5e7eb',
       streetViewControl: false,
       mapTypeControl: false,
       fullscreenControl: false,
-      zoomControl: interactive,
+      minZoom: MIN_MAP_ZOOM,
+      zoomControl: false,
       draggable: interactive,
       scrollwheel: interactive,
       disableDoubleClickZoom: !interactive,
@@ -462,9 +408,9 @@ export default function ProjectMap({
       clickableIcons: interactive,
       gestureHandling: interactive ? 'greedy' : 'none',
       padding: normalizedPadding,
-      styles: !selectedMapId && isDark ? googleMapsDarkStyle : undefined,
+      styles: isDark ? googleMapsDarkStyle : undefined,
     }
-  }, [interactive, normalizedMapTheme, normalizedPadding, selectedMapId])
+  }, [interactive, normalizedMapTheme, normalizedPadding])
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'jobsite-finder-google-map',
@@ -565,19 +511,6 @@ export default function ProjectMap({
     return validProjects.find((p) => p.id === infoProjectId) || null
   }, [infoProjectId, validProjects])
 
-  // Straight-line (haversine) distance from the user to the open project,
-  // shown in the popup when the user's location is available. Driving
-  // distance per item is intentionally avoided to preserve Directions API
-  // quota.
-  const infoDistanceLabel = useMemo(() => {
-    if (!infoProject || !userLocation) return ''
-    const km = haversineKm(userLocation, {
-      lat: infoProject._lat,
-      lng: infoProject._lng,
-    })
-    return formatDistanceKm(km)
-  }, [infoProject, userLocation])
-
   useEffect(() => {
     if (infoProjectId && !infoProject) setInfoProjectId(null)
   }, [infoProjectId, infoProject])
@@ -617,7 +550,7 @@ export default function ProjectMap({
   const onMapUnmount = useCallback(() => {
     if (clustererRef.current) clustererRef.current.clearMarkers()
     markersRef.current.forEach((m) => {
-      m.map = null
+      clearMarker(m)
     })
     markersRef.current = []
     markersByIdRef.current.clear()
@@ -631,7 +564,7 @@ export default function ProjectMap({
       highlightFeatureLayerRef.current = null
     }
     if (userMarkerRef.current) {
-      userMarkerRef.current.map = null
+      clearMarker(userMarkerRef.current)
       userMarkerRef.current = null
     }
     if (userAccuracyCircleRef.current) {
@@ -803,7 +736,7 @@ export default function ProjectMap({
       clustererRef.current = new MarkerClusterer({
         map: mapInstance,
         markers: [],
-        algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 14 }),
+        algorithm: new SuperClusterAlgorithm({ radius: 44, maxZoom: 10, minPoints: 3 }),
         renderer: buildClusterRenderer(clusterTone),
         onClusterClick: interactive ? undefined : () => {},
       })
@@ -822,21 +755,21 @@ export default function ProjectMap({
         // project's stage), swap the pin content in place so the color
         // stays correct without rebuilding the marker.
         if (prev.stageKey !== p._stageKey) {
-          prev.marker.content = buildJobsitePinContent(pinColorOverride || getMapPinColor(p), p.source_type)
+          prev.marker.setIcon(buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p.source_type))
           prev.stageKey = p._stageKey
         }
         continue
       }
 
-      const marker = new google.maps.marker.AdvancedMarkerElement({
+      const marker = new google.maps.Marker({
         position: { lat: p._lat, lng: p._lng },
-        content: buildJobsitePinContent(pinColorOverride || getMapPinColor(p), p.source_type),
-        gmpClickable: interactive,
+        icon: buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p.source_type),
+        clickable: interactive,
       })
       const projectId = p.id
       if (interactive) {
-        marker.addListener('gmp-click', () => {
-          setInfoProjectId(projectId)
+        marker.addListener('click', () => {
+          if (showPopups) setInfoProjectId(projectId)
           if (onProjectSelectRef.current) onProjectSelectRef.current(projectId)
         })
       }
@@ -861,7 +794,7 @@ export default function ProjectMap({
     if (toRemove.length > 0) {
       clustererRef.current.removeMarkers(toRemove, true)
       toRemove.forEach((m) => {
-        m.map = null
+        clearMarker(m)
       })
     }
     if (toAdd.length > 0) {
@@ -871,7 +804,7 @@ export default function ProjectMap({
     }
 
     markersRef.current = Array.from(cache.values(), (e) => e.marker)
-  }, [clusterTone, interactive, isLoaded, mapInstance, pinColorOverride, validProjects])
+  }, [clusterTone, interactive, isLoaded, mapInstance, pinColorOverride, showPopups, validProjects])
 
   // One-shot initial-data-load auto-fit. Fires exactly once, the first time
   // mappedCount goes from 0 → >0 (i.e. projects finish loading). For new
@@ -893,7 +826,7 @@ export default function ProjectMap({
   // contains only user-controllable filter values (search, stage, trade,
   // minValue) — mappedCount is intentionally excluded
   // so that project data arriving after mount never triggers this path.
-  // Single match → pan + city zoom. Empty → reset to default Alberta view.
+  // Single match → pan + city zoom. Empty → reset to default Canada view.
   // Many → fitBounds with padding. We always skip the very first trigger
   // (initialization at mount) so neither new nor returning visitors get a
   // spurious auto-fit before they have interacted with anything.
@@ -905,6 +838,7 @@ export default function ProjectMap({
     lastFilterSigRef.current = filterSignature
 
     if (isInitialization) return
+    if (userMovedMapRef.current) return
 
     const sites = validProjectsRef.current
 
@@ -964,7 +898,7 @@ export default function ProjectMap({
     mapInstance.fitBounds(bounds, 80)
   }, [isLoaded, mapInstance, centerOnUserToken])
 
-  // Snap back to the default regional Alberta activity view when the parent bumps
+  // Snap back to the default Canada activity view when the parent bumps
   // the reset token. Mirrors the centerOnUserToken pattern so a single
   // click in the parent translates into one programmatic re-view.
   useEffect(() => {
@@ -988,7 +922,7 @@ export default function ProjectMap({
 
     if (!hasValidLocation) {
       if (userMarkerRef.current) {
-        userMarkerRef.current.map = null
+        clearMarker(userMarkerRef.current)
         userMarkerRef.current = null
       }
       if (userAccuracyCircleRef.current) {
@@ -1001,12 +935,12 @@ export default function ProjectMap({
     const pos = { lat: userLocation.lat, lng: userLocation.lng }
 
     if (userMarkerRef.current) {
-      userMarkerRef.current.position = pos
+      userMarkerRef.current.setPosition(pos)
     } else {
-      userMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
+      userMarkerRef.current = new google.maps.Marker({
         position: pos,
         map: mapInstance,
-        content: buildUserDotContent(),
+        icon: buildUserDotIcon(),
         zIndex: 9999,
         title: 'Your location',
       })
@@ -1055,8 +989,8 @@ export default function ProjectMap({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl">
+      <CanadaBoundaryLayer map={mapInstance} />
       <GoogleMap
-        key={`project-map-${normalizedMapTheme}-${selectedMapId || 'inline'}`}
         mapContainerStyle={containerStyle}
         center={effectiveInitialViewport?.center || bootCenterRef.current}
         zoom={effectiveInitialViewport?.zoom ?? bootZoomRef.current}
@@ -1071,11 +1005,7 @@ export default function ProjectMap({
           >
             <ProjectMapPopup
               project={infoProject}
-              distanceLabel={infoDistanceLabel}
               onClose={() => setInfoProjectId(null)}
-              onApplyNearbyShortcut={onApplyNearbyShortcut}
-              nearbyShortcutActive={nearbyShortcutActive}
-              userLocation={userLocation}
             />
           </OverlayView>
         )}

@@ -7,7 +7,6 @@ import {
   saveCompanyProfile,
 } from '../../services/companiesService'
 import CompanyProfileForm from '../../components/profile/CompanyProfileForm'
-import BackButton from '../../components/ui/BackButton'
 
 export default function GCCompanyPage() {
   const { user, loading: authLoading } = useAuth()
@@ -86,7 +85,6 @@ export default function GCCompanyPage() {
 
   return (
     <div className="space-y-6">
-      <BackButton label="← Back" />
       
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <span className="inline-block rounded-full bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-400">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, DollarSign, FileText, Image as ImageIcon, MapPin, Navigation, ShieldCheck, UsersRound } from 'lucide-react'
 import { useProject } from '../../hooks/useProjects'
@@ -6,13 +6,14 @@ import { useAuth } from '../../hooks/useAuth'
 import { getJobsByProjectId } from '../../services/jobsService'
 import { updateContractorProjectLocation } from '../../services/projectsService'
 import { createClaim, getApprovedProjectCompanies, getMyClaimForProject } from '../../services/claimsService'
-import { getContractorDisplayLocation, getPublicDisplayLocation, hasContractorLocation, normalizeRole, formatCurrencyShort, useLocalStorage } from '../../lib/utils'
+import { getContractorDisplayLocation, getPublicDisplayLocation, hasContractorLocation, normalizeRole, formatCurrencyShort } from '../../lib/utils'
 import { PUBLIC_STAGE_TONES, getPublicStageMeta } from '../../lib/projectStages'
 import JobCard from '../../components/jobs/JobCard'
 import ApplyButton from '../../components/jobs/ApplyButton'
-import ProjectDetailMap from '../../components/map/ProjectDetailMap'
-import BackButton from '../../components/ui/BackButton'
+import SaveJobButton from '../../components/jobs/SaveJobButton'
 import ProjectImageManager from '../../components/projects/ProjectImageManager'
+import PageMeta from '../../components/ui/PageMeta'
+import { breadcrumbSchema, canonicalUrl } from '../../lib/seo'
 
 function stripHtml(html) {
   return html ? html.replace(/<[^>]*>/g, '') : ''
@@ -24,27 +25,6 @@ const TRAVEL_MODES = [
   { key: 'BICYCLING', label: 'Bike',    icon: '🚲' },
   { key: 'TRANSIT',   label: 'Transit', icon: '🚌' },
 ]
-
-const SESSION_KEY = 'jf:travel-mode'
-const MAP_THEME_STORAGE_KEY = 'jobsite-finder:map-theme:v1'
-const isValidMapTheme = (v) => v === 'dark' || v === 'light'
-
-function describeRouteError(status) {
-  switch (status) {
-    case 'ZERO_RESULTS':
-      return 'No route found for this travel mode between you and this jobsite.'
-    case 'REQUEST_DENIED':
-      return 'Directions API is not enabled on this Google Maps key.'
-    case 'OVER_QUERY_LIMIT':
-      return 'Directions quota reached. Try again later.'
-    case 'NOT_FOUND':
-      return 'Could not find your location or the jobsite location.'
-    case 'INVALID_REQUEST':
-      return 'Invalid directions request.'
-    default:
-      return `Could not get directions (${status}).`
-  }
-}
 
 function Field({ label, value }) {
   return (
@@ -171,7 +151,7 @@ function ProjectOverview({ project, jobs, jobsLoading, companies }) {
 
 const LOCATION_FIELDS = [
   { key: 'display_address', label: 'Display address', type: 'input' },
-  { key: 'google_maps_url', label: 'Google Maps URL', type: 'input' },
+  { key: 'google_maps_url', label: 'External map URL', type: 'input' },
   { key: 'gate_entrance', label: 'Gate / entrance', type: 'input' },
   { key: 'muster_point', label: 'Muster point', type: 'input' },
   { key: 'parking_instructions', label: 'Parking instructions', type: 'textarea' },
@@ -488,6 +468,47 @@ function ProjectTeamList({ companies, jobs, loading, error }) {
   )
 }
 
+function PrimaryGeneralContractor({ companies, jobs, loading, error }) {
+  const jobsByCompany = buildJobsByCompany(jobs)
+  const primaryGc = getPrimaryGeneralContractor(companies)
+
+  if (loading) return <p className="text-sm text-slate-400">Loading general contractor...</p>
+  if (error) return <p className="text-sm text-red-300">{error.message}</p>
+
+  return primaryGc ? (
+    <ProjectCompanyCard
+      connection={primaryGc}
+      jobs={jobsByCompany.get(String(primaryGc.company_profile_id || primaryGc.company?.id)) || []}
+      fallbackName="Approved general contractor"
+      featured
+    />
+  ) : (
+    <Field label="Primary General Contractor" value="Not listed yet" />
+  )
+}
+
+function SubcontractorList({ companies, jobs, loading, error }) {
+  const jobsByCompany = buildJobsByCompany(jobs)
+  const subcontractors = companies.filter((c) => c.status === 'approved' && c.company_role === 'subcontractor')
+
+  if (loading) return <p className="text-sm text-slate-400">Loading subcontractors...</p>
+  if (error) return <p className="text-sm text-red-300">{error.message}</p>
+  if (subcontractors.length === 0) return <p className="text-sm text-slate-400">No participating subcontractors listed yet.</p>
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {subcontractors.map((connection) => (
+        <ProjectCompanyCard
+          key={connection.id}
+          connection={connection}
+          jobs={jobsByCompany.get(String(connection.company_profile_id || connection.company?.id)) || []}
+          fallbackName="Approved subcontractor"
+        />
+      ))}
+    </div>
+  )
+}
+
 function StatusBadge({ statusType }) {
   if (statusType === 'verified') {
     return (
@@ -673,100 +694,9 @@ export default function ProjectDetailPage() {
   const [activeProject, setActiveProject] = useState(null)
   const [myClaim, setMyClaim] = useState(null)
 
-  // GPS / location for the in-app driving directions feature. We use a
-  // one-shot getCurrentPosition here (not watchPosition) because the
-  // detail page only needs the visitor's location once to plan a route.
-  // Live route-sync as the user moves is intentionally tracked as a
-  // separate follow-up task.
-  const [userLocation, setUserLocation] = useState(null)
-  const [locating, setLocating] = useState(false)
-  const [locationError, setLocationError] = useState(null)
-  const [showRoute, setShowRoute] = useState(false)
-  const [routeInfo, setRouteInfo] = useState(null)
-  const [stepsOpen, setStepsOpen] = useState(false)
-  const [travelMode, setTravelMode] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem(SESSION_KEY)
-      return TRAVEL_MODES.some((m) => m.key === saved) ? saved : 'DRIVING'
-    } catch {
-      return 'DRIVING'
-    }
-  })
-  const [mapTheme] = useLocalStorage(
-    MAP_THEME_STORAGE_KEY,
-    'dark',
-    { validate: isValidMapTheme },
-  )
-  const mountedRef = useRef(true)
-
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
-
   useEffect(() => {
     setActiveProject(project)
   }, [project])
-
-  const requestLocation = useCallback(() => {
-    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
-      setLocationError({
-        kind: 'unsupported',
-        message: 'Geolocation is not supported by this browser.',
-      })
-      return
-    }
-    setLocating(true)
-    setLocationError(null)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (!mountedRef.current) return
-        setUserLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        })
-        setLocating(false)
-        setLocationError(null)
-      },
-      (err) => {
-        if (!mountedRef.current) return
-        setLocating(false)
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocationError({
-            kind: 'denied',
-            message: 'Location blocked. Enable it in your browser settings.',
-          })
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          setLocationError({
-            kind: 'unavailable',
-            message: 'Could not determine your location.',
-          })
-        } else if (err.code === err.TIMEOUT) {
-          setLocationError({
-            kind: 'timeout',
-            message: 'Locating you took too long. Try again.',
-          })
-        } else {
-          setLocationError({
-            kind: 'unknown',
-            message: err.message || 'Failed to get your location.',
-          })
-        }
-      },
-      { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 },
-    )
-  }, [])
-
-  // Reset any in-flight route + cached info whenever we navigate to a
-  // different project so the previous jobsite's route doesn't bleed
-  // through.
-  useEffect(() => {
-    setShowRoute(false)
-    setRouteInfo(null)
-  }, [project?.id])
 
   useEffect(() => {
     if (!project?.id) {
@@ -796,22 +726,6 @@ export default function ProjectDetailPage() {
       .catch(() => { if (mounted) setMyClaim(null) })
     return () => { mounted = false }
   }, [user?.id, authRole, project?.id, claimRefresh])
-
-  const handleRouteResult = useCallback((info) => {
-    setRouteInfo(info)
-    if (info?.status === 'OK') {
-      setStepsOpen(true)
-    }
-  }, [])
-
-  const handleTravelModeChange = useCallback((mode) => {
-    setTravelMode(mode)
-    setRouteInfo(null)
-    try {
-      sessionStorage.setItem(SESSION_KEY, mode)
-    } catch {
-    }
-  }, [])
 
   useEffect(() => {
     if (!project?.id) {
@@ -852,185 +766,151 @@ export default function ProjectDetailPage() {
   const canEditLocation =
     normalizeRole(authRole) === 'admin' ||
     (myClaim?.status === 'approved' && ['gc', 'sc'].includes(normalizeRole(authRole)))
-  const canManageImages = canEditLocation
+  const isAdmin = normalizeRole(authRole) === 'admin'
+  const canManageImages =
+    isAdmin ||
+    (
+      normalizeRole(authRole) === 'gc' &&
+      myClaim?.status === 'approved' &&
+      myClaim?.company_role === 'gc' &&
+      myClaim?.is_primary_gc !== false
+    )
   const projectImages = displayedProject._images || []
   const primaryImage = displayedProject._primaryImage || projectImages.find((image) => image.is_primary) || projectImages[0] || null
 
   const lat = Number(displayedProject.latitude)
   const lng = Number(displayedProject.longitude)
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lng)
-  const rawMapQuery = [displayedProject.address, displayedProject.city, displayedProject.province]
-    .filter(Boolean)
-    .join(', ')
-  const googleMapsUrl = displayedProject.google_maps_url ||
-    (hasCoords
-    ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
-    : rawMapQuery || publicLocation
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawMapQuery || publicLocation)}`
-      : null)
+  const openRoleCount = jobsLoading ? null : getOpenRoleCount(jobs)
+  const isHiring = !jobsLoading && openRoleCount > 0
+  const locationQuery = hasCoords
+    ? `${lat},${lng}`
+    : [displayedProject.display_address || displayedProject.address, displayedProject.city, displayedProject.province]
+      .filter(Boolean)
+      .join(', ')
+  const mapsUrl = displayedProject.google_maps_url ||
+    (locationQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}` : null)
+  const metaLocation = [displayedProject.city, displayedProject.province].filter(Boolean).join(', ')
+  const metaTitle = `${displayedProject.project_name || 'Project'} | Jobsite Finder`
+  const metaDescription = [
+    displayedProject.project_name,
+    metaLocation,
+    displayedProject.stage ? `Stage: ${displayedProject.stage}` : '',
+    displayedProject.hiring_status ? `Hiring status: ${displayedProject.hiring_status}` : '',
+  ].filter(Boolean).join('. ')
+  const projectImage = primaryImage?.image_url || displayedProject.primary_image_url || undefined
+  const jobStructuredData = (jobs || []).slice(0, 10).map((job) => ({
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title || job.trade || 'Construction Job',
+    description: stripHtml(job.description || job.requirements || `Construction role at ${displayedProject.project_name}`),
+    datePosted: job.created_at || displayedProject.created_at || undefined,
+    employmentType: job.employment_type || undefined,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.company?.company_name || displayedProject.general_contractor || 'Hiring Contractor',
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: displayedProject.city || undefined,
+        addressRegion: displayedProject.province || undefined,
+        addressCountry: 'CA',
+      },
+    },
+  }))
+  const projectStructuredData = [
+    breadcrumbSchema([
+      { name: 'Home', path: '/' },
+      { name: 'Jobsites', path: '/jobsites' },
+      { name: displayedProject.project_name || 'Project', path: `/projects/${displayedProject.id}` },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Place',
+      name: displayedProject.project_name,
+      url: canonicalUrl(`/projects/${displayedProject.id}`),
+      description: stripHtml(displayedProject.description) || metaDescription,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: displayedProject.city || undefined,
+        addressRegion: displayedProject.province || undefined,
+        streetAddress: displayedProject.display_address || displayedProject.address || undefined,
+        addressCountry: 'CA',
+      },
+      image: projectImage,
+    },
+    ...jobStructuredData,
+  ]
 
-  const destination = hasCoords ? { lat, lng } : null
-  const hasUserLocation = !!(
-    userLocation &&
-    Number.isFinite(userLocation.lat) &&
-    Number.isFinite(userLocation.lng)
-  )
-  const canGetDirections = hasCoords && hasUserLocation
-  const activeModeLabel =
-    TRAVEL_MODES.find((m) => m.key === travelMode)?.label ?? 'Drive'
   return (
     <div className="space-y-6">
-      <BackButton label="Back to Jobsites Map" />
-      
-      <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950">
-        <div className="border-b border-yellow-400/20 bg-gradient-to-br from-slate-900 via-black to-slate-950 p-5 sm:p-7">
-          {primaryImage && (
-            <div className="mb-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
-              <img
-                src={primaryImage.image_url}
-                alt={primaryImage.alt_text || `${displayedProject.project_name || 'Jobsite'} photo`}
-                className="aspect-[16/9] w-full object-cover"
-              />
-            </div>
-          )}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-300">
-                <MapPin size={16} aria-hidden="true" />
-                {publicLocation || 'Alberta'}
-              </p>
-              <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-4xl">
-                {displayedProject.project_name || 'Project details'}
-              </h1>
-            </div>
-            <StatusBadge statusType={displayedProject.project_status_type || 'unverified'} />
-          </div>
+      <PageMeta
+        title={metaTitle}
+        description={metaDescription}
+        path={`/projects/${displayedProject.id}`}
+        image={projectImage}
+        structuredData={projectStructuredData}
+      />
 
-        </div>
-
-        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">
-              Workers can see hiring companies, open roles, and contractors on site.
+            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-300">
+              <MapPin size={16} aria-hidden="true" />
+              {publicLocation || 'Location not listed'}
             </p>
-            <p className="mt-1 text-sm text-slate-400">
-              Project details are grouped below the hiring and team sections.
-            </p>
+            <h1 className="mt-2 text-3xl font-black leading-tight text-white sm:text-4xl">
+              {displayedProject.project_name || 'Project details'}
+            </h1>
           </div>
-          <a
-            href="#project-open-jobs"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-yellow-400 px-5 py-3 text-sm font-black text-black transition hover:bg-yellow-300"
-          >
-            View Jobs / Apply
-          </a>
+          <StatusBadge statusType={displayedProject.project_status_type || 'unverified'} />
         </div>
       </div>
 
-      {(hasCoords || googleMapsUrl) && (
-        <section className="rounded-3xl border border-slate-800 bg-slate-900 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-yellow-400/30 bg-yellow-400/10 text-yellow-300">
-                <MapPin size={18} aria-hidden="true" />
+      <section id="project-open-jobs" className="scroll-mt-24 rounded-3xl border border-yellow-400/30 bg-slate-900 p-5 shadow-lg shadow-yellow-400/5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-yellow-300">Hiring</p>
+            <h2 className="mt-1 text-2xl font-black text-white">
+              {jobsLoading
+                ? 'Checking open positions...'
+                : isHiring
+                  ? `${openRoleCount} Open ${openRoleCount === 1 ? 'Position' : 'Positions'}`
+                  : 'No Open Positions Currently'}
+            </h2>
+            <p className="mt-2 text-sm text-slate-400">
+              {isHiring ? 'Apply to an active role tied to this jobsite.' : 'There are no live job posts for this project right now.'}
+            </p>
+          </div>
+          <div className="shrink-0">
+            {jobs[0] ? (
+              <ApplyButton jobPostId={jobs[0].id} />
+            ) : (
+              <span className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-bold text-slate-400">
+                Apply Now
               </span>
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-white">Location / Directions</h2>
-                <p className="mt-1 break-words text-sm font-semibold leading-6 text-slate-300">{publicLocation || 'Alberta'}</p>
-              </div>
-            </div>
-            {googleMapsUrl && (
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:border-yellow-400 hover:bg-yellow-400/20"
-              >
-                <Navigation size={15} aria-hidden="true" />
-                Open in Google Maps
-              </a>
             )}
           </div>
-
-          {hasCoords ? (
-            <div className="mt-4 h-56 w-full overflow-hidden rounded-2xl border border-slate-800 sm:h-72">
-              <ProjectDetailMap
-                jobsiteId={project.id}
-                destination={destination}
-                mapTheme={mapTheme}
-              />
-            </div>
-          ) : (
-            <p className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-              We don't have a precise pin for this jobsite yet.
-            </p>
-          )}
-        </section>
-      )}
-
-      <div id="project-open-jobs" className="scroll-mt-24 rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <div>
-          <h2 className="text-xl font-bold text-white">{jobs.length > 0 ? "Open Roles Hiring Now" : "Open Roles"}</h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Live job posts tied to jobsites on this project.
-          </p>
         </div>
-        {jobsLoading && <p className="text-sm text-slate-400">Loading jobs...</p>}
+        {jobsLoading && <p className="mt-4 text-sm text-slate-400">Loading jobs...</p>}
         {jobsError && !jobsLoading && (
-          <p className="text-sm text-red-300">{jobsError.message}</p>
-        )}
-        {!jobsLoading && !jobsError && jobs.length === 0 && (
-          <p className="text-sm text-slate-400">No live job posts for this project yet.</p>
+          <p className="mt-4 text-sm text-red-300">{jobsError.message}</p>
         )}
         {jobs.length > 0 && (
           <div className="mt-4 space-y-3">
             {jobs.map((job) => (
               <JobCard key={job.id} job={job}>
-                <ApplyButton jobPostId={job.id} />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                  <ApplyButton jobPostId={job.id} />
+                  <SaveJobButton jobPostId={job.id} />
+                </div>
               </JobCard>
             ))}
           </div>
         )}
-      </div>
-
-      <DetailSection title="Project Team" icon={BriefcaseBusiness}>
-        <div className="mb-5 rounded-2xl border border-yellow-400/20 bg-black/25 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">Companies connected to this jobsite</p>
-              <p className="mt-1 text-sm leading-6 text-slate-400">
-                See the general contractor, active subcontractors, and who is hiring workers right now.
-              </p>
-            </div>
-            <div className="shrink-0 rounded-2xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-left sm:text-right">
-              <p className="text-2xl font-black text-yellow-300">{jobsLoading ? '-' : getOpenRoleCount(jobs)}</p>
-              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-100/80">Open roles</p>
-            </div>
-          </div>
-        </div>
-        <ProjectTeamList
-          companies={projectCompanies}
-          jobs={jobs}
-          loading={companiesLoading}
-          error={companiesError}
-        />
-      </DetailSection>
-
-      <DetailSection title="Project Overview" icon={FileText}>
-        <ProjectOverview
-          project={displayedProject}
-          jobs={jobs}
-          jobsLoading={jobsLoading}
-          companies={projectCompanies}
-        />
-      </DetailSection>
-
-      <DetailSection title="Jobsite Access" icon={MapPin}>
-        <JobsiteAccessDetails
-          project={displayedProject}
-          canEdit={canEditLocation}
-          onSaved={setActiveProject}
-        />
-      </DetailSection>
+      </section>
 
       {(projectImages.length > 0 || canManageImages) && (
         <DetailSection title="Jobsite Photos" icon={ImageIcon}>
@@ -1051,6 +931,69 @@ export default function ProjectDetailPage() {
           />
         </DetailSection>
       )}
+
+      {projectImages.length === 0 && !canManageImages && normalizeRole(authRole) === 'gc' && (
+        <DetailSection title="Jobsite Photos" icon={ImageIcon}>
+          <div className="rounded-2xl border border-slate-800 bg-black/25 p-4 text-sm text-slate-400">
+            Project photos are available once your company is approved as the primary General Contractor on a jobsite.
+          </div>
+        </DetailSection>
+      )}
+
+      <DetailSection title="Project Information" icon={FileText}>
+        <ProjectOverview
+          project={displayedProject}
+          jobs={jobs}
+          jobsLoading={jobsLoading}
+          companies={projectCompanies}
+        />
+      </DetailSection>
+
+      <DetailSection title="Primary General Contractor" icon={BriefcaseBusiness}>
+        <PrimaryGeneralContractor
+          companies={projectCompanies}
+          jobs={jobs}
+          loading={companiesLoading}
+          error={companiesError}
+        />
+      </DetailSection>
+
+      <DetailSection title="Subcontractors" icon={UsersRound}>
+        <SubcontractorList
+          companies={projectCompanies}
+          jobs={jobs}
+          loading={companiesLoading}
+          error={companiesError}
+        />
+      </DetailSection>
+
+      <DetailSection title="Location" icon={MapPin}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Jobsite Location" value={publicLocation || 'Location not listed'} />
+          <Field label="City" value={displayedProject.city} />
+          <Field label="Province" value={displayedProject.province} />
+          <Field label="Address" value={displayedProject.display_address || displayedProject.address} />
+        </div>
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:border-yellow-400 hover:bg-yellow-400/20"
+          >
+            <Navigation size={15} aria-hidden="true" />
+            Open in Maps
+          </a>
+        )}
+      </DetailSection>
+
+      <DetailSection title="Jobsite Access" icon={MapPin}>
+        <JobsiteAccessDetails
+          project={displayedProject}
+          canEdit={canEditLocation}
+          onSaved={setActiveProject}
+        />
+      </DetailSection>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
         <DetailSection title="Original Listing" icon={Navigation}>

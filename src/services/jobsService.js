@@ -172,6 +172,25 @@ export async function getJobsByProjectId(projectId) {
   return mapRows(result.data)
 }
 
+export async function getRecentOpenJobs(limit = 6) {
+  let result = await supabase
+    .from('job_posts')
+    .select(`${JOB_FIELDS}, company:company_profiles(id, company_name), project:projects(id, project_name, city, province, display_address, stage)`)
+    .ilike('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (isMissingStructuredJobColumn(result.error)) {
+    result = await supabase
+      .from('job_posts')
+      .select(`${BASE_JOB_FIELDS}, company:company_profiles(id, company_name), project:projects(id, project_name, city, province, display_address, stage)`)
+      .ilike('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+  }
+  if (result.error) throw new Error(`Failed to load recent jobs: ${result.error.message}`)
+  return mapRows(result.data)
+}
+
 export async function getApprovedProjectsForUser(userId) {
   if (!userId) throw new Error('No authenticated user.')
   
@@ -187,14 +206,14 @@ export async function getApprovedProjectsForUser(userId) {
   // Fetch approved claims with project details
   let result = await supabase
     .from('project_claims')
-    .select('id, project_id, status, company_role, trade_scope, is_primary_gc, projects!inner(id, project_name, latitude, longitude, stage, city, province, estimated_value, is_active, is_public_project)')
+    .select('id, project_id, company_profile_id, status, company_role, trade_scope, is_primary_gc, projects!inner(id, project_name, latitude, longitude, stage, city, province, estimated_value, is_active, is_public_project)')
     .eq('company_profile_id', companyProfile.id)
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
   if (isMissingProjectTeamColumn(result.error)) {
     result = await supabase
       .from('project_claims')
-      .select('id, project_id, status, claim_type, projects!inner(id, project_name, latitude, longitude, stage, city, province, estimated_value, is_active, is_public_project)')
+      .select('id, project_id, company_profile_id, status, claim_type, projects!inner(id, project_name, latitude, longitude, stage, city, province, estimated_value, is_active, is_public_project)')
       .eq('company_profile_id', companyProfile.id)
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
@@ -211,6 +230,7 @@ export async function getApprovedProjectsForUser(userId) {
     return {
       id: claim.id,
       project_id: claim.project_id,
+      company_profile_id: claim.company_profile_id,
       project_name: claim.projects?.project_name || `Project ${claim.project_id}`,
       latitude: claim.projects?.latitude,
       longitude: claim.projects?.longitude,
@@ -223,6 +243,14 @@ export async function getApprovedProjectsForUser(userId) {
     }
   })
   return attachProjectImages(mapped, imagesByProject)
+}
+
+export async function getApprovedGcProjectsForUser(userId) {
+  const projects = await getApprovedProjectsForUser(userId)
+  return projects.filter((project) => (
+    project.company_role === 'gc' &&
+    project.is_primary_gc !== false
+  ))
 }
 
 export async function getMyCompanyJobs(userId) {
@@ -375,6 +403,19 @@ export async function getSavedJobs(userId) {
     job_post: mapRow(row.job_post),
   }))
     .filter((row) => row.job_post?.status === 'open')
+}
+
+export async function getSavedJobIds(userId, jobPostIds = []) {
+  const ids = [...new Set((jobPostIds || []).filter(Boolean))]
+  if (ids.length === 0) return new Set()
+  const workerId = await getWorkerIdForUser(userId)
+  const { data, error } = await supabase
+    .from('saved_jobs')
+    .select('job_post_id')
+    .eq('worker_profile_id', workerId)
+    .in('job_post_id', ids)
+  if (error) throw new Error(`Failed to load saved job state: ${error.message}`)
+  return new Set((data ?? []).map((row) => row.job_post_id))
 }
 
 export async function deleteJobPost(jobId, userId) {

@@ -6,11 +6,17 @@ import ScrollToTop from '../components/layout/ScrollToTop'
 import ErrorBoundary from '../components/ui/ErrorBoundary'
 import { getMaintenanceMode } from '../services/siteSettingsService'
 import { useAuth } from '../hooks/useAuth'
+import PageMeta from '../components/ui/PageMeta'
+import { defaultDescription, organizationSchema, staticRouteMeta, websiteSchema } from '../lib/seo'
+import { MapProviderProvider } from '../components/map/MapProviderContext'
 
 const maintenanceAllowedPrefixes = ['/under-construction', '/login', '/signin', '/admin', '/api']
+const devMaintenanceAllowedPrefixes = import.meta.env.DEV ? ['/jobsites', '/projects', '/maplibre-poc'] : []
 
 function isMaintenanceAllowed(pathname) {
-  return maintenanceAllowedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  return [...maintenanceAllowedPrefixes, ...devMaintenanceAllowedPrefixes].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  )
 }
 
 export default function App() {
@@ -18,7 +24,15 @@ export default function App() {
   const { user, loading: authLoading } = useAuth()
   const [maintenanceMode, setMaintenanceMode] = useState(null)
   const isUnderConstruction = location.pathname === '/under-construction'
+  const isMapWorkspace = location.pathname === '/jobsites' || location.pathname === '/maplibre-poc'
   const maintenanceAllowed = isMaintenanceAllowed(location.pathname)
+  const routeMeta = staticRouteMeta[location.pathname] || {
+    title: 'Jobsite Finder',
+    description: defaultDescription,
+  }
+  const structuredData = routeMeta.structuredData?.includes('organization')
+    ? [organizationSchema(), websiteSchema()]
+    : null
 
   useEffect(() => {
     let cancelled = false
@@ -55,23 +69,33 @@ export default function App() {
 
   if (isUnderConstruction) {
     return (
-      <ErrorBoundary key={location.pathname}>
-        <Outlet />
-      </ErrorBoundary>
+      <MapProviderProvider>
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
+      </MapProviderProvider>
     )
   }
 
   return (
     <div className="jf-page-shell relative flex min-h-screen flex-col overflow-hidden">
       <div className="jf-hazard-overlay pointer-events-none fixed inset-0 opacity-25" aria-hidden="true" />
+      <PageMeta
+        title={routeMeta.title}
+        description={routeMeta.description}
+        path={location.pathname}
+        structuredData={structuredData}
+      />
       <ScrollToTop />
       <Navbar />
-      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        <ErrorBoundary key={location.pathname}>
-          <Outlet />
-        </ErrorBoundary>
-      </main>
-      <Footer />
+      <MapProviderProvider>
+        <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
+        </main>
+      </MapProviderProvider>
+      {!isMapWorkspace && <Footer />}
     </div>
   )
 }

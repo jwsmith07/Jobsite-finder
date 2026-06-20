@@ -128,9 +128,9 @@ export function getRoleLabel(role) {
 export function getDefaultRouteForRole(role) {
   switch (normalizeRole(role)) {
     case 'worker':
-      return '/jobsites'
+      return '/worker/dashboard'
     case 'gc':
-      return '/gc/dashboard'
+      return '/gc/jobsites'
     case 'sc':
       return '/subcontractor/dashboard'
     case 'admin':
@@ -167,7 +167,7 @@ export function getPublicDisplayLocation(projectOrLocation) {
     typeof projectOrLocation === 'string'
       ? { city: projectOrLocation }
       : projectOrLocation || {}
-  const province = cleanLocationPart(project.province) || 'Alberta'
+  const province = cleanLocationPart(project.province) || 'Province not listed'
   const rawCandidates = [
     project.city,
     project.region,
@@ -209,9 +209,9 @@ export function getPublicDisplayLocation(projectOrLocation) {
   }
 
   const lat = Number(project.latitude)
-  if (Number.isFinite(lat) && lat >= 55) return 'Northern Alberta'
+  if (Number.isFinite(lat) && lat >= 55 && province !== 'Province not listed') return province
 
-  return province
+  return province || 'Canada'
 }
 
 export function getContractorDisplayLocation(projectOrLocation) {

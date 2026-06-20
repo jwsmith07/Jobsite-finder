@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import DashboardShell from '../../components/layout/DashboardShell'
-import BackButton from '../../components/ui/BackButton'
 import { useAuth } from '../../hooks/useAuth'
 import {
   getAllJobsites,
@@ -176,7 +175,6 @@ export default function AdminJobsitesPage() {
       title="Admin · Jobsites Map"
       subtitle="Add and manage jobsites tied to projects. General Contractor and Subcontractor users pick from this list when posting jobs."
     >
-      <BackButton label="← Back" />
       {message && (
         <div
           className={`rounded-2xl border p-4 text-sm ${

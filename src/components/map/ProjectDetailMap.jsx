@@ -84,6 +84,7 @@ export default function ProjectDetailMap({
   destination,
   userLocation = null,
   showRoute = false,
+  routeRequestId = 0,
   travelMode = 'DRIVING',
   onRouteResult,
   mapTheme = 'dark',
@@ -272,7 +273,6 @@ export default function ProjectDetailMap({
     const cached = getCachedRoute(cacheKey)
 
     if (cached) {
-      console.log('[RouteCache] HIT — skipping Directions API call', cacheKey)
       if (directionsRendererRef.current) {
         directionsRendererRef.current.setDirections(cached.result)
       }
@@ -305,7 +305,6 @@ export default function ProjectDetailMap({
             steps: leg?.steps ?? [],
           }
           setCachedRoute(cacheKey, { result, info })
-          console.log('[RouteCache] MISS — stored result for', cacheKey)
           if (onRouteResultRef.current) {
             onRouteResultRef.current(info)
           }
@@ -327,7 +326,7 @@ export default function ProjectDetailMap({
     return () => {
       cancelled = true
     }
-  }, [isLoaded, mapInstance, showRoute, userLocation, destination, travelMode, jobsiteId])
+  }, [isLoaded, mapInstance, showRoute, userLocation, destination, routeRequestId, travelMode, jobsiteId])
 
   if (loadError) {
     return (
@@ -348,7 +347,6 @@ export default function ProjectDetailMap({
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl">
       <GoogleMap
-        key={`project-detail-map-${normalizedMapTheme}-${selectedMapId || 'inline'}`}
         mapContainerStyle={containerStyle}
         center={destination}
         zoom={13}

@@ -1,6 +1,6 @@
 -- Jobsite/project image uploads.
--- Allows admins to manage any project image and approved project companies
--- to manage images for projects they are connected to.
+-- Allows admins and approved primary General Contractors to manage
+-- project images for projects they are connected to.
 -- Safe to run multiple times.
 
 create extension if not exists pgcrypto;
@@ -54,8 +54,9 @@ as $$
       join public.company_profiles
         on company_profiles.id = project_claims.company_profile_id
       where project_claims.project_id = p_project_id
-        and project_claims.company_profile_id = p_company_id
         and project_claims.status = 'approved'
+        and project_claims.company_role = 'gc'
+        and project_claims.is_primary_gc = true
         and company_profiles.profile_id = auth.uid()
     );
 $$;
@@ -109,7 +110,18 @@ create policy "project_images_insert_connected_or_admin" on public.project_image
     or (
       uploaded_by = auth.uid()
       and company_id is not null
-      and public.can_manage_project_image(project_id, company_id)
+      and exists (
+        select 1
+        from public.project_claims
+        join public.company_profiles
+          on company_profiles.id = project_claims.company_profile_id
+        where project_claims.project_id = project_images.project_id
+          and project_claims.company_profile_id = project_images.company_id
+          and project_claims.status = 'approved'
+          and project_claims.company_role = 'gc'
+          and project_claims.is_primary_gc = true
+          and company_profiles.profile_id = auth.uid()
+      )
     )
   );
 
@@ -153,6 +165,8 @@ create policy "jobsite_images_insert_connected_or_admin" on storage.objects
           where project_claims.project_id = ((storage.foldername(name))[1])::bigint
             and project_claims.company_profile_id = ((storage.foldername(name))[2])::bigint
             and project_claims.status = 'approved'
+            and project_claims.company_role = 'gc'
+            and project_claims.is_primary_gc = true
             and company_profiles.profile_id = auth.uid()
         )
       )
@@ -173,8 +187,9 @@ create policy "jobsite_images_update_connected_or_admin" on storage.objects
           join public.company_profiles
             on company_profiles.id = project_claims.company_profile_id
           where project_claims.project_id = ((storage.foldername(name))[1])::bigint
-            and project_claims.company_profile_id = ((storage.foldername(name))[2])::bigint
             and project_claims.status = 'approved'
+            and project_claims.company_role = 'gc'
+            and project_claims.is_primary_gc = true
             and company_profiles.profile_id = auth.uid()
         )
       )
@@ -191,8 +206,9 @@ create policy "jobsite_images_update_connected_or_admin" on storage.objects
           join public.company_profiles
             on company_profiles.id = project_claims.company_profile_id
           where project_claims.project_id = ((storage.foldername(name))[1])::bigint
-            and project_claims.company_profile_id = ((storage.foldername(name))[2])::bigint
             and project_claims.status = 'approved'
+            and project_claims.company_role = 'gc'
+            and project_claims.is_primary_gc = true
             and company_profiles.profile_id = auth.uid()
         )
       )
@@ -213,8 +229,9 @@ create policy "jobsite_images_delete_connected_or_admin" on storage.objects
           join public.company_profiles
             on company_profiles.id = project_claims.company_profile_id
           where project_claims.project_id = ((storage.foldername(name))[1])::bigint
-            and project_claims.company_profile_id = ((storage.foldername(name))[2])::bigint
             and project_claims.status = 'approved'
+            and project_claims.company_role = 'gc'
+            and project_claims.is_primary_gc = true
             and company_profiles.profile_id = auth.uid()
         )
       )

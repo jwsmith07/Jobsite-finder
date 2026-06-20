@@ -11,7 +11,6 @@ import {
   updateJobPost,
 } from '../../services/jobsService'
 import JobCard from '../../components/jobs/JobCard'
-import BackButton from '../../components/ui/BackButton'
 import {
   HIRING_TAGS,
   apprenticeshipSelectValue,
@@ -89,7 +88,6 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
       ])
       setJobs(jobsData)
       setProjects(projectsData)
-      console.log('[GCJobsPage] Loaded', projectsData.length, 'approved projects')
     } catch (err) {
       console.error('[GCJobsPage] Load error:', err.message)
       setError(err)
@@ -123,7 +121,6 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
     if (!user) return
     setCreating(true)
     setMessage(null)
-    console.log('[GCJobsPage] Submitting job post form:', form)
     try {
       await createJobPost(user.id, form)
       setMessage({ type: 'success', text: 'Job posted.' })
@@ -280,7 +277,6 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
 
   return (
     <div className="space-y-6">
-      <BackButton label="← Back" />
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h1 className="text-2xl font-bold">{roleLabel} Jobs</h1>
         <p className="mt-1 text-sm text-slate-400">
@@ -330,16 +326,26 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
               <input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Plumber, Welder, Lead Hand..." required />
             </div>
             <div>
+              <label className={labelCls}>Number of Openings</label>
+              <input type="number" className={inputCls} value={form.positions_count} onChange={(e) => set('positions_count', Number(e.target.value))} min="1" required />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Description</label>
+            <textarea rows={4} className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What work needs to be done?" />
+          </div>
+
+          <details className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+            <summary className="cursor-pointer text-sm font-bold text-white">More Details</summary>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
               <label className={labelCls}>Shift / Rotation</label>
               <input className={inputCls} value={form.schedule} onChange={(e) => set('schedule', e.target.value)} placeholder="Days, Nights, 4x10..." />
             </div>
             <div>
               <label className={labelCls}>Wage / Rate</label>
               <input className={inputCls} value={form.pay_range} onChange={(e) => set('pay_range', e.target.value)} placeholder="$40-$55/hr" />
-            </div>
-            <div>
-              <label className={labelCls}>Number of Openings</label>
-              <input type="number" className={inputCls} value={form.positions_count} onChange={(e) => set('positions_count', Number(e.target.value))} min="1" required />
             </div>
             <div>
               <label className={labelCls}>Camp Availability</label>
@@ -378,9 +384,9 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
               <label className={labelCls}>Expires at</label>
               <input type="date" className={inputCls} value={form.expires_at} onChange={(e) => set('expires_at', e.target.value)} />
             </div>
-          </div>
+            </div>
 
-          <div>
+          <div className="mt-5">
             <label className={labelCls}>Hiring Tags</label>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {HIRING_TAGS.map((tag) => (
@@ -397,18 +403,15 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
             </div>
           </div>
 
-          <div>
-            <label className={labelCls}>Description</label>
-            <textarea rows={4} className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} />
-          </div>
-          <div>
+          <div className="mt-5">
             <label className={labelCls}>Required Tickets / Certifications</label>
             <textarea rows={2} className={inputCls} value={form.required_certifications} onChange={(e) => set('required_certifications', e.target.value)} placeholder="CSTS, WHMIS, Fall Pro, H2S..." />
           </div>
-          <div>
+          <div className="mt-5">
             <label className={labelCls}>Other Requirements</label>
             <textarea rows={2} className={inputCls} value={form.requirements} onChange={(e) => set('requirements', e.target.value)} />
           </div>
+          </details>
 
           <button
             type="submit"

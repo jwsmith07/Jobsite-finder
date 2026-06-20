@@ -6,7 +6,7 @@ export default function ProjectDetailHeader({ project }) {
   return (
     <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-yellow-300">{location || 'Alberta'}</p>
+        <p className="text-sm text-yellow-300">{location || 'Location not listed'}</p>
         <ProjectStatusBadge status={project.project_status_type} />
       </div>
       <h1 className="mt-2 text-3xl font-black text-white sm:text-4xl">

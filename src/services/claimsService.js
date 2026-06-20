@@ -25,6 +25,21 @@ function isMissingProjectTeamColumn(error) {
   )
 }
 
+async function requireAdmin() {
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError || !authData?.user?.id) throw new Error('Admin authorization required.')
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', authData.user.id)
+    .maybeSingle()
+  if (error) throw new Error(`Failed to verify admin permissions: ${error.message}`)
+  if (String(profile?.role || '').toLowerCase() !== 'admin') {
+    throw new Error('Admin authorization required.')
+  }
+  return authData.user
+}
+
 function getMissingCompanyColumn(error) {
   const message = String(error?.message || '')
   const quotedMatch = /'([^']+)' column/i.exec(message)
@@ -148,6 +163,7 @@ export async function createClaim(userId, projectId, values) {
 }
 
 export async function getAllClaims() {
+  await requireAdmin()
   let result = await supabase
     .from('project_claims')
     .select(`${CLAIM_FIELDS},
@@ -274,6 +290,7 @@ async function clearOtherPrimaryGc(projectId, claimId) {
 }
 
 export async function updateClaimAdmin(claimId, values) {
+  await requireAdmin()
   const before = await getClaimById(claimId)
   const patch = buildClaimPatch(values)
 
@@ -325,6 +342,7 @@ export async function updateClaimAdmin(claimId, values) {
 }
 
 export async function approveClaim(claimId, adminNotes) {
+  await requireAdmin()
   const before = await getClaimById(claimId)
   const role = before.company_role || toCompanyRole(before.claim_type)
   const isPrimaryGc = role === 'gc'
@@ -352,6 +370,7 @@ export async function approveClaim(claimId, adminNotes) {
 }
 
 export async function rejectClaim(claimId, adminNotes) {
+  await requireAdmin()
   const { data: claim, error: cErr } = await supabase
     .from('project_claims')
     .update({
@@ -370,6 +389,7 @@ export async function rejectClaim(claimId, adminNotes) {
 }
 
 export async function revokeClaim(claimId, adminNotes) {
+  await requireAdmin()
   const claim = await updateClaimAdmin(claimId, {
     status: 'revoked',
     admin_notes: adminNotes,

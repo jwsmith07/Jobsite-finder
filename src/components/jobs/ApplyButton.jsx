@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { applyToJob, getExistingApplicationForWorker, getWorkerForUser } from '../../services/applicationsService'
 import { normalizeRole } from '../../lib/utils'
 
-export default function ApplyButton({ jobPostId, defaultResumeUrl }) {
+export default function ApplyButton({ jobPostId }) {
   const { user, profile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [checkingApplied, setCheckingApplied] = useState(false)
@@ -144,13 +144,11 @@ export default function ApplyButton({ jobPostId, defaultResumeUrl }) {
     setLoading(true)
     setErrorMessage(null)
     try {
-      console.log('ApplyButton: Attempting to apply to job', jobPostId, 'for user', user.id)
-      const result = await applyToJob(user.id, jobPostId, {})
-      console.log('ApplyButton: Application insert result:', result)
+      await applyToJob(user.id, jobPostId, {})
       setHasApplied(true)
     } catch (err) {
       console.error('ApplyButton: Apply error:', err.message)
-      setErrorMessage('Could not apply to this job right now. Please try again later.')
+      setErrorMessage(err.message || 'Could not apply to this job right now. Please try again later.')
     } finally {
       setLoading(false)
     }
@@ -166,6 +164,7 @@ export default function ApplyButton({ jobPostId, defaultResumeUrl }) {
       >
         {loading ? 'Applying...' : 'Apply with my profile'}
       </button>
+      <p className="text-xs text-slate-400">Your uploaded resume will be attached automatically.</p>
       {errorMessage && (
         <p className="text-sm text-red-300">{errorMessage}</p>
       )}

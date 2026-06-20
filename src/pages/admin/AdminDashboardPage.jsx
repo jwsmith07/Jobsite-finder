@@ -3,29 +3,34 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import DashboardShell from '../../components/layout/DashboardShell'
 import { Switch } from '../../components/ui/switch'
-import { getMaintenanceMode, updateMaintenanceMode } from '../../services/siteSettingsService'
+import { getMaintenanceMode, getMapProviderSetting, updateMaintenanceMode, updateMapProviderSetting } from '../../services/siteSettingsService'
+import { useMapProvider } from '../../components/map/MapProviderContext'
 
 const links = [
-  { to: '/admin/projects', label: 'Projects', desc: 'Review and edit project visibility, stage, and status.' },
+  { to: '/admin/projects', label: 'Manage Jobsites', desc: 'Review and edit jobsite visibility, stage, and status.' },
   { to: '/admin/jobsites', label: 'Jobsites Map', desc: 'Add jobsites tied to projects so GCs and SCs can post jobs.' },
-  { to: '/admin/claims', label: 'Project claims', desc: 'Approve or reject company claims to verify projects.' },
-  { to: '/admin/users', label: 'Users & companies', desc: 'View users and verify pending company profiles.' },
+  { to: '/admin/claims', label: 'Verify Jobsite Ownership', desc: 'Approve or reject company claims to verify projects.' },
+  { to: '/admin/users', label: 'Manage Users', desc: 'View users and verify pending company profiles.' },
 ]
 
 export default function AdminDashboardPage() {
   const { user } = useAuth()
+  const mapProviderContext = useMapProvider()
   const [maintenanceMode, setMaintenanceMode] = useState(true)
+  const [mapProvider, setMapProvider] = useState('maplibre')
   const [settingsLoading, setSettingsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [providerSaving, setProviderSaving] = useState(false)
   const [settingsError, setSettingsError] = useState('')
 
   useEffect(() => {
     let cancelled = false
 
-    getMaintenanceMode()
-      .then((enabled) => {
+    Promise.all([getMaintenanceMode(), getMapProviderSetting()])
+      .then(([enabled, provider]) => {
         if (!cancelled) {
           setMaintenanceMode(enabled)
+          setMapProvider(provider)
           setSettingsError('')
         }
       })
@@ -53,6 +58,23 @@ export default function AdminDashboardPage() {
       setSettingsError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleMapProviderChange(provider) {
+    const previous = mapProvider
+    setMapProvider(provider)
+    setProviderSaving(true)
+    setSettingsError('')
+    try {
+      const savedValue = await updateMapProviderSetting(provider)
+      setMapProvider(savedValue)
+      mapProviderContext.reload()
+    } catch (error) {
+      setMapProvider(previous)
+      setSettingsError(error.message)
+    } finally {
+      setProviderSaving(false)
     }
   }
 
@@ -116,6 +138,41 @@ export default function AdminDashboardPage() {
             {saving ? 'Saving site setting...' : 'No redeploy is required. Changes apply on the next page load.'}
           </p>
         )}
+      </section>
+
+      <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-yellow-300">Map Provider</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">Application Map Provider</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Controls every map instance across Jobsite Finder. No redeploy is required.
+            </p>
+          </div>
+          <div className="flex rounded-2xl border border-slate-800 bg-slate-950 p-1">
+            {[
+              { value: 'maplibre', label: 'OpenStreetMap' },
+              { value: 'google', label: 'Google' },
+            ].map((provider) => (
+              <button
+                key={provider.value}
+                type="button"
+                disabled={settingsLoading || providerSaving}
+                onClick={() => handleMapProviderChange(provider.value)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold capitalize transition ${
+                  mapProvider === provider.value
+                    ? 'bg-yellow-400 text-slate-950'
+                    : 'text-slate-300 hover:bg-slate-900 hover:text-yellow-200'
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {provider.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-slate-500">
+          {providerSaving ? 'Saving map provider...' : `Current provider: ${mapProvider}.`}
+        </p>
       </section>
     </DashboardShell>
   )

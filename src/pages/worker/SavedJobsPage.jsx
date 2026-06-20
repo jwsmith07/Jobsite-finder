@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getSavedJobs, toggleSavedJob } from '../../services/jobsService'
 import JobCard from '../../components/jobs/JobCard'
-import BackButton from '../../components/ui/BackButton'
+import GlobalCard, { CardHeader } from '../../components/ui/GlobalCard'
+import GlobalButton from '../../components/ui/GlobalButton'
 
 export default function SavedJobsPage() {
   const { user, loading: authLoading } = useAuth()
@@ -47,28 +48,29 @@ export default function SavedJobsPage() {
   }
 
   if (authLoading) {
-    return <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 text-slate-400">Loading...</div>
+    return <GlobalCard padding="lg" className="text-slate-400">Loading...</GlobalCard>
   }
 
   if (!user) {
     return (
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <h1 className="text-2xl font-bold">Saved Jobs</h1>
-        <p className="mt-2 text-slate-400">Please sign in to view your saved jobs.</p>
-        <Link to="/signin" className="mt-6 inline-block rounded-xl bg-yellow-400 px-4 py-2 font-bold text-black">
-          Sign in
+      <GlobalCard padding="lg">
+        <CardHeader title="Saved Jobs" subtitle="Please sign in to view your saved jobs." />
+        <Link to="/signin" className="mt-6 inline-block">
+          <GlobalButton>Sign in</GlobalButton>
         </Link>
-      </div>
+      </GlobalCard>
     )
   }
 
   return (
     <div className="space-y-6">
-      <BackButton label="← Back" />
-      <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <h1 className="text-2xl font-bold">Saved Jobs</h1>
-        <p className="mt-1 text-sm text-slate-400">Roles you bookmarked for later.</p>
-      </div>
+      <GlobalCard padding="md">
+        <CardHeader
+          title="Saved Jobs"
+          subtitle="Roles you bookmarked for later."
+          actions={<Link to="/jobsites"><GlobalButton size="sm" variant="secondary">Find More Jobs</GlobalButton></Link>}
+        />
+      </GlobalCard>
 
       <div className="space-y-3">
         {loading && (
@@ -82,9 +84,12 @@ export default function SavedJobsPage() {
           </div>
         )}
         {!loading && !error && items.length === 0 && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
-            You have no saved jobs yet.
-          </div>
+          <GlobalCard padding="lg" className="text-center">
+            <p className="text-sm text-slate-400">You have no saved jobs yet.</p>
+            <Link to="/jobsites" className="mt-4 inline-block">
+              <GlobalButton size="sm">Browse Jobsites</GlobalButton>
+            </Link>
+          </GlobalCard>
         )}
 
         {items.map((row) => {
@@ -92,14 +97,21 @@ export default function SavedJobsPage() {
           if (!job) return null
           return (
             <JobCard key={row.id} job={job}>
-              <button
-                type="button"
-                onClick={() => handleRemove(job.id)}
-                disabled={busyId === job.id}
-                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-red-500 hover:text-red-300 disabled:opacity-60"
-              >
-                {busyId === job.id ? 'Removing...' : 'Remove'}
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {job.project_id && (
+                  <Link to={`/projects/${job.project_id}`} className="flex-1">
+                    <GlobalButton size="sm" className="w-full">View Jobsite</GlobalButton>
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(job.id)}
+                  disabled={busyId === job.id}
+                  className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-red-500 hover:text-red-300 disabled:opacity-60"
+                >
+                  {busyId === job.id ? 'Removing...' : 'Remove'}
+                </button>
+              </div>
             </JobCard>
           )
         })}

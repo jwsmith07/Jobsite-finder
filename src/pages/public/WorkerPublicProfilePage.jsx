@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import BackButton from '../../components/ui/BackButton'
+import { getWorkerProfileById } from '../../services/profilesService'
 import { normalizeApprenticeshipLevel, normalizeTrade } from '../../lib/trades'
+import {
+  getAvailabilityLabel,
+  getProfileCertifications,
+  normalizeList,
+} from '../../lib/workerCredentials'
 
 export default function WorkerPublicProfilePage() {
   const { id } = useParams()
@@ -23,17 +28,8 @@ export default function WorkerPublicProfilePage() {
 
     ;(async () => {
       try {
-        // Fetch worker profile
-        const { data: workerData, error: workerError } = await supabase
-          .from('worker_profiles')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle()
-
-        if (workerError) throw new Error(`Failed to load worker profile: ${workerError.message}`)
+        const workerData = await getWorkerProfileById(id)
         if (!workerData) throw new Error('Worker profile not found')
-
-        console.log("workerProfile loaded", workerData)
 
         // Fetch profile for full name
         const { data: profileData, error: profileError } = await supabase
@@ -113,10 +109,12 @@ export default function WorkerPublicProfilePage() {
   const primaryTrade = normalizeTrade(profile.trade)
   const secondaryTrade = normalizeTrade(profile.secondary_trade)
   const apprenticeshipLevel = normalizeApprenticeshipLevel(profile.apprenticeship_level)
+  const certifications = getProfileCertifications(profile)
+  const workPreferences = normalizeList(profile.work_preferences)
+  const preferredRegions = normalizeList(profile.preferred_regions)
 
   return (
     <div className="space-y-6">
-      <BackButton label="← Back" />
       
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <h1 className="text-2xl font-bold">Worker Profile</h1>
@@ -139,14 +137,51 @@ export default function WorkerPublicProfilePage() {
           </div>
 
           {/* Experience Level */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Trade</span>
+              <p className="mt-1 text-slate-300">{primaryTrade || 'Not specified'}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Years Experience</span>
+              <p className="mt-1 text-slate-300">
+                {profile.experience_years ? `${profile.experience_years} years` : 'Not specified'}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Certifications</span>
+              <p className="mt-1 text-slate-300">{certifications.length ? certifications.join(', ') : 'Not specified'}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Resume Status</span>
+              <p className="mt-1 text-slate-300">{profile.resume_url ? 'Uploaded' : 'Not uploaded'}</p>
+            </div>
+          </div>
+
           <div>
-            <span className="text-sm font-medium text-slate-400">Experience:</span>
+            <span className="text-sm font-medium text-slate-400">Experience Level:</span>
             {apprenticeshipLevel && (
               <p className="mt-1 text-slate-300">{apprenticeshipLevel}</p>
             )}
+            {profile.trade_level && <p className="mt-1 text-slate-300">{profile.trade_level}</p>}
             <p className="mt-1 text-slate-300">
               {profile.experience_years ? `${profile.experience_years} years` : 'Not specified'}
             </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Availability</span>
+              <p className="mt-1 text-slate-300">{getAvailabilityLabel(profile.availability_status)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Work Preferences</span>
+              <p className="mt-1 text-slate-300">{workPreferences.length ? workPreferences.join(', ') : 'Not specified'}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <span className="text-sm font-medium text-slate-400">Preferred Regions</span>
+              <p className="mt-1 text-slate-300">{preferredRegions.length ? preferredRegions.join(', ') : 'Not specified'}</p>
+            </div>
           </div>
 
           {(profile.camp_ready || profile.willing_to_travel) && (

@@ -1,13 +1,11 @@
 export const PUBLIC_STAGE_OPTIONS = [
-  { key: 'planning', label: 'Planning', color: '#22c55e' },
-  { key: 'active', label: 'Active', color: '#facc15' },
-  { key: 'near_completion', label: 'Near Completion', color: '#ef4444' },
+  { key: 'active', label: 'Active', color: '#22c55e' },
+  { key: 'upcoming', label: 'Upcoming', color: '#facc15' },
 ]
 
 export const PUBLIC_STAGE_TONES = {
-  planning: 'border-green-600/50 bg-green-500/10 text-green-200',
-  active: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200',
-  near_completion: 'border-red-500/50 bg-red-500/10 text-red-200',
+  active: 'border-green-600/50 bg-green-500/10 text-green-200',
+  upcoming: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200',
 }
 
 export const HIRING_NOW_TONE = 'border-green-600/50 bg-green-500/15 text-green-200'
@@ -21,6 +19,16 @@ export function getPublicStageKey(stage) {
   const s = String(stage || '').trim().toLowerCase()
 
   if (!s || s === 'unknown' || s === 'n/a' || s === 'na' || s === 'none') {
+    return null
+  }
+
+  if (
+    s === 'on_hold' ||
+    s === 'on hold' ||
+    s.includes('paused') ||
+    s.includes('suspended') ||
+    s.includes('deferred')
+  ) {
     return null
   }
 
@@ -39,19 +47,7 @@ export function getPublicStageKey(stage) {
     s.includes('mobilization') ||
     s.includes('mobilisation')
   ) {
-    return 'planning'
-  }
-
-  if (
-    s.includes('near complete') ||
-    s.includes('near-complete') ||
-    s.includes('near completion') ||
-    s.includes('closeout') ||
-    s.includes('close out') ||
-    s.includes('commission') ||
-    s.includes('final')
-  ) {
-    return 'near_completion'
+    return 'upcoming'
   }
 
   if (
@@ -60,7 +56,14 @@ export function getPublicStageKey(stage) {
     s.includes('progress') ||
     s.includes('underway') ||
     s.includes('under way') ||
-    s.includes('construction')
+    s.includes('construction') ||
+    s.includes('near complete') ||
+    s.includes('near-complete') ||
+    s.includes('near completion') ||
+    s.includes('closeout') ||
+    s.includes('close out') ||
+    s.includes('commission') ||
+    s.includes('final')
   ) {
     return 'active'
   }
@@ -99,6 +102,17 @@ export function isCancelledProject(stageOrProject) {
   })
 }
 
+export function isOnHoldProject(stageOrProject) {
+  const values =
+    typeof stageOrProject === 'object' && stageOrProject !== null
+      ? [stageOrProject.stage, stageOrProject.status]
+      : [stageOrProject]
+  return values.some((value) => {
+    const s = String(value || '').trim().toLowerCase()
+    return s === 'on_hold' || s === 'on hold' || s.includes('paused') || s.includes('suspended')
+  })
+}
+
 export function isUnknownProject(stageOrProject) {
   if (typeof stageOrProject === 'object' && stageOrProject !== null) {
     const status = String(stageOrProject.status || '').trim().toLowerCase()
@@ -109,16 +123,18 @@ export function isUnknownProject(stageOrProject) {
 
 export function isPublicProjectVisible(project) {
   return (
+    project?.is_active !== false &&
+    project?.is_public_project !== false &&
     (project?.review_status == null || project?.review_status === 'approved') &&
     project?.is_public !== false &&
     !isCompletedProject(project) &&
     !isCancelledProject(project) &&
-    !isUnknownProject(project)
+    !isOnHoldProject(project)
   )
 }
 
 export function getPublicStageMeta(stage) {
-  return PUBLIC_STAGE_BY_KEY[getPublicStageKey(stage)] || PUBLIC_STAGE_BY_KEY.planning
+  return PUBLIC_STAGE_BY_KEY[getPublicStageKey(stage)] || PUBLIC_STAGE_BY_KEY.upcoming
 }
 
 export function getPublicStageLabel(stage) {

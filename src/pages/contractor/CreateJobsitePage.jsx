@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Send } from 'lucide-react'
 import DashboardShell from '../../components/layout/DashboardShell'
-import BackButton from '../../components/ui/BackButton'
 import { useAuth } from '../../hooks/useAuth'
 import { createContractorJobsite } from '../../services/contractorJobsitesService'
 
@@ -38,7 +37,7 @@ export default function CreateJobsitePage() {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
 
-  const dashboardPath = role === 'sc' ? '/subcontractor/dashboard' : '/gc/dashboard'
+  const dashboardPath = role === 'sc' ? '/subcontractor/dashboard' : '/gc/jobsites'
 
   function setField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -71,7 +70,6 @@ export default function CreateJobsitePage() {
       title="Create Jobsite"
       subtitle="Submit a contractor-created jobsite when public project data is missing."
     >
-      <BackButton label="Back" />
 
       {message && (
         <div
@@ -93,7 +91,6 @@ export default function CreateJobsitePage() {
       <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Project name" value={form.project_name} onChange={(v) => setField('project_name', v)} required />
-          <Field label="Project type" value={form.project_type} onChange={(v) => setField('project_type', v)} />
           <div>
             <label className={labelCls}>Stage</label>
             <select className={inputCls} value={form.stage} onChange={(e) => setField('stage', e.target.value)}>
@@ -102,18 +99,24 @@ export default function CreateJobsitePage() {
               <option>Near Completion</option>
             </select>
           </div>
-          <Field label="Sector" value={form.sector} onChange={(v) => setField('sector', v)} />
           <div className="sm:col-span-2">
             <Field label="Location / display address" value={form.display_address} onChange={(v) => setField('display_address', v)} required />
           </div>
+        </div>
+
+        <details className="mt-5 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+          <summary className="cursor-pointer text-sm font-bold text-white">More Details</summary>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="Project type" value={form.project_type} onChange={(v) => setField('project_type', v)} />
+          <Field label="Sector" value={form.sector} onChange={(v) => setField('sector', v)} />
           <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 sm:col-span-2">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
               <MapPin size={16} aria-hidden="true" />
-              Map pin
+              Map pin (optional)
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Latitude" type="number" step="any" value={form.latitude} onChange={(v) => setField('latitude', v)} required />
-              <Field label="Longitude" type="number" step="any" value={form.longitude} onChange={(v) => setField('longitude', v)} required />
+              <Field label="Latitude" type="number" step="any" value={form.latitude} onChange={(v) => setField('latitude', v)} />
+              <Field label="Longitude" type="number" step="any" value={form.longitude} onChange={(v) => setField('longitude', v)} />
             </div>
           </div>
           <Field label="Project value" value={form.project_value_display} onChange={(v) => setField('project_value_display', v)} />
@@ -140,7 +143,8 @@ export default function CreateJobsitePage() {
           </div>
           <Field label="Google Maps URL" value={form.google_maps_url} onChange={(v) => setField('google_maps_url', v)} />
           <Field label="Primary image URL" value={form.primary_image_url} onChange={(v) => setField('primary_image_url', v)} />
-        </div>
+          </div>
+        </details>
 
         <div className="mt-5">
           <button

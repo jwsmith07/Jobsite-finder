@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Inbox, Map as MapIcon, Moon, Sun } from 'lucide-react'
-import ProjectMap from '../../components/map/ProjectMap'
+import { ChevronDown, Inbox, Map as MapIcon, Moon, Sun, X } from 'lucide-react'
+import ProjectMap from '../../components/map/UnifiedProjectMap'
 import ProjectListPanel from '../../components/map/ProjectListPanel'
 import SelectedProjectPanel from '../../components/map/SelectedProjectPanel'
 import MapFilters from '../../components/map/MapFilters'
-import ActiveFilterChips from '../../components/map/ActiveFilterChips'
-import BackButton from '../../components/ui/BackButton'
 import { useProjects } from '../../hooks/useProjects'
 import { useAuth } from '../../hooks/useAuth'
 import { haversineKm, useDebouncedValue, useLocalStorage } from '../../lib/utils'
@@ -14,21 +12,25 @@ import {
   getPublicStageKey,
   isPublicProjectVisible,
 } from '../../lib/projectStages'
-import { MAJOR_PROJECT_MESSAGE, normalizeProjectValueFilter, parseProjectValue } from '../../lib/projectValue'
+import { normalizeProjectValueFilter, parseProjectValue } from '../../lib/projectValue'
 import { STANDARD_TRADES, normalizeTrade } from '../../lib/trades'
+import { getCanadianRegionLabel, normalizeCanadianRegion } from '../../lib/canadianRegions'
 import { getMyPreferences, saveMyPreferences } from '../../services/profilesService'
 
 const DEFAULT_FILTERS = {
   search: '',
+  province: 'all',
   stage: 'all',
   trade: 'all',
   minValue: '0',
+  hiringOnly: false,
+  claimedOnly: false,
 }
 
 const JOBSITES_MAP_PADDING = {
   top: 80,
   right: 24,
-  bottom: 360,
+  bottom: 112,
   left: 24,
 }
 
@@ -41,7 +43,7 @@ const JOBSITES_MAP_PADDING_DESKTOP = {
 
 // Where the last map view (center + zoom) is persisted across visits.
 // Stored locally per-browser; clearing site data resets to the default
-// regional Alberta activity overview.
+// Canada-wide activity overview.
 const MAP_VIEW_STORAGE_KEY = 'jobsite-finder:map-view:v1'
 
 // Where the last opened jobsite id is persisted across visits, so the
@@ -70,9 +72,17 @@ const MAP_THEME_TOGGLE_EVENT = 'jobsite-finder:map-theme-toggle'
 const isValidLimitToMapView = (v) => typeof v === 'boolean'
 const isValidMapTheme = (v) => v === 'dark' || v === 'light'
 
-function getJobsitesMapPadding() {
+function getJobsitesMapPadding(drawerOpen = false) {
   if (typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches) {
     return JOBSITES_MAP_PADDING_DESKTOP
+  }
+  if (drawerOpen && typeof window !== 'undefined') {
+    return {
+      top: 80,
+      right: 24,
+      bottom: Math.round(window.innerHeight * 0.72) + 24,
+      left: 24,
+    }
   }
   return JOBSITES_MAP_PADDING
 }
@@ -157,9 +167,12 @@ export default function JobsitesPage() {
   // recompute, eliminating the per-keystroke jank with hundreds of
   // pins on the map.
   const debouncedSearch = useDebouncedValue(search, 200)
+  const [province, setProvince] = useState(DEFAULT_FILTERS.province)
   const [stage, setStage] = useState(DEFAULT_FILTERS.stage)
   const [trade, setTrade] = useState(DEFAULT_FILTERS.trade)
   const [minValue, setMinValue] = useState(DEFAULT_FILTERS.minValue)
+  const [hiringOnly, setHiringOnly] = useState(DEFAULT_FILTERS.hiringOnly)
+  const [claimedOnly, setClaimedOnly] = useState(DEFAULT_FILTERS.claimedOnly)
   const [limitToMapView, setLimitToMapView] = useLocalStorage(
     limitToMapViewKey,
     true,
@@ -170,18 +183,22 @@ export default function JobsitesPage() {
     'dark',
     { validate: isValidMapTheme },
   )
-  const [mapPadding, setMapPadding] = useState(() => getJobsitesMapPadding())
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const [stageLegendOpen, setStageLegendOpen] = useState(false)
+  const [mapPadding, setMapPadding] = useState(() => getJobsitesMapPadding(false))
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const media = window.matchMedia('(min-width: 1024px)')
-    const handleChange = () => setMapPadding(getJobsitesMapPadding())
+    const handleChange = () => setMapPadding(getJobsitesMapPadding(mobileDrawerOpen))
     handleChange()
     media.addEventListener?.('change', handleChange)
+    window.addEventListener('resize', handleChange)
     return () => {
       media.removeEventListener?.('change', handleChange)
+      window.removeEventListener('resize', handleChange)
     }
-  }, [])
+  }, [mobileDrawerOpen])
 
   // Server-side preferences sync. The localStorage values above act as
   // a fast-path cache (and are the only store for guests). For signed-in
@@ -272,7 +289,7 @@ export default function JobsitesPage() {
   const [centerOnUserToken, setCenterOnUserToken] = useState(0)
 
   // Bumping this token tells <ProjectMap> to snap back to the default
-  // regional Alberta activity view. Paired with clearing the persisted view so the
+  // Canada-wide activity view. Paired with clearing the persisted view so the
   // next visit also starts fresh.
   const [resetViewToken, setResetViewToken] = useState(0)
   // True while a reset is in flight. The programmatic pan/zoom that
@@ -364,7 +381,7 @@ export default function JobsitesPage() {
           setLocating(false)
           setLocationError({
             kind: 'denied',
-            message: 'Showing available projects.',
+            message: 'Location blocked. Enable location access in your browser to center the map on you.',
           })
           return
         }
@@ -392,6 +409,10 @@ export default function JobsitesPage() {
   }, [stopWatching])
 
   const requestLocation = startWatching
+
+  useEffect(() => {
+    requestLocation()
+  }, [requestLocation])
 
   useEffect(() => {
     return () => {
@@ -490,6 +511,7 @@ export default function JobsitesPage() {
         urlUpdateTimerRef.current = null
       }
     }
+    setMapBounds(null)
     // Latch the "resetting" flag so any 'idle' writes that arrive
     // from the programmatic pan/zoom are dropped (and the storage
     // key is re-cleared on each one). Cleared after a short safety
@@ -536,6 +558,17 @@ export default function JobsitesPage() {
   )
 
   const stages = PUBLIC_STAGE_OPTIONS
+  const provinces = useMemo(() => {
+    const byCode = new Map()
+    for (const project of publicProjects) {
+      const code = normalizeCanadianRegion(project.province)
+      if (!code) continue
+      byCode.set(code, getCanadianRegionLabel(code) || code)
+    }
+    return Array.from(byCode, ([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [publicProjects])
+
   // Distinct normalized values pulled live from open job-post trades, sorted alphabetically.
   const trades = useMemo(() => {
     const set = new Set()
@@ -558,11 +591,13 @@ export default function JobsitesPage() {
     return normalizeProjectValueFilter(minValue)
   }, [minValue])
 
-  const filtered = useMemo(() => {
-    const q = debouncedSearch.trim().toLowerCase()
+  const mapFiltered = useMemo(() => {
     const list = []
     for (const p of publicProjects) {
+      if (province !== 'all' && normalizeCanadianRegion(p.province) !== province) continue
       if (stage !== 'all' && getPublicStageKey(p.stage) !== stage) continue
+      if (hiringOnly && !(p._isHiringNow || (Number(p._openRolesCount) || 0) > 0)) continue
+      if (claimedOnly && !p.claimed_by_company_id) continue
       if (
         trade !== 'all' &&
         !(p._openRoleTrades || []).some((roleTrade) => normalizeTrade(roleTrade) === trade)
@@ -571,6 +606,23 @@ export default function JobsitesPage() {
         const v = parseProjectValue(p.estimated_value)
         if (!Number.isFinite(v) || v < minValueNum) continue
       }
+      list.push(p)
+    }
+    return list
+  }, [
+    publicProjects,
+    province,
+    stage,
+    trade,
+    hiringOnly,
+    claimedOnly,
+    minValueNum,
+  ])
+
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase()
+    const list = []
+    for (const p of mapFiltered) {
       if (q) {
         const name = (p.project_name || '').toLowerCase()
         const city = (p.city || '').toLowerCase()
@@ -584,11 +636,8 @@ export default function JobsitesPage() {
     }
     return list
   }, [
-    publicProjects,
+    mapFiltered,
     debouncedSearch,
-    stage,
-    trade,
-    minValueNum,
     hasUserLocation,
     userLocation,
   ])
@@ -597,6 +646,7 @@ export default function JobsitesPage() {
     () => filtered.filter((p) => p._hasValidCoords).length,
     [filtered],
   )
+  const totalJobsitesCount = mappedCount
 
   // Viewport-gated list: when "Limit to map view" is on and the map has
   // reported its bounds at least once, narrow the filtered list to
@@ -641,28 +691,36 @@ export default function JobsitesPage() {
   const filterSignature = useMemo(
     () =>
       [
-        debouncedSearch,
+        province,
         stage,
         trade,
         minValue,
+        hiringOnly ? 'hiring' : 'all-hiring',
+        claimedOnly ? 'claimed' : 'all-claims',
       ].join('|'),
-    [debouncedSearch, stage, trade, minValue],
+    [province, stage, trade, minValue, hiringOnly, claimedOnly],
   )
 
   const hasActiveFilters = useMemo(
     () =>
       search !== DEFAULT_FILTERS.search ||
+      province !== DEFAULT_FILTERS.province ||
       stage !== DEFAULT_FILTERS.stage ||
       trade !== DEFAULT_FILTERS.trade ||
-      minValue !== DEFAULT_FILTERS.minValue,
-    [search, stage, trade, minValue],
+      minValue !== DEFAULT_FILTERS.minValue ||
+      hiringOnly !== DEFAULT_FILTERS.hiringOnly ||
+      claimedOnly !== DEFAULT_FILTERS.claimedOnly,
+    [search, province, stage, trade, minValue, hiringOnly, claimedOnly],
   )
 
   const clearFilters = useCallback(() => {
     setSearch(DEFAULT_FILTERS.search)
+    setProvince(DEFAULT_FILTERS.province)
     setStage(DEFAULT_FILTERS.stage)
     setTrade(DEFAULT_FILTERS.trade)
     setMinValue(DEFAULT_FILTERS.minValue)
+    setHiringOnly(DEFAULT_FILTERS.hiringOnly)
+    setClaimedOnly(DEFAULT_FILTERS.claimedOnly)
   }, [])
 
   // One-click "find more nearby" shortcut surfaced from the map
@@ -700,6 +758,7 @@ export default function JobsitesPage() {
 
   const handleSelectProject = useCallback((id) => {
     setSelectedProjectId(id)
+    setMobileDrawerOpen(true)
   }, [])
 
   const handleCloseSelected = useCallback(() => {
@@ -707,10 +766,9 @@ export default function JobsitesPage() {
   }, [])
 
   return (
-    <div className="relative -mx-4 -my-4 h-[calc(100vh-4rem)] min-h-[620px] overflow-hidden bg-slate-950 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-8 lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-6 lg:gap-y-4 lg:p-6">
-      <h1 className="sr-only">Canada construction jobsites</h1>
+    <div className="fixed inset-x-0 bottom-0 top-[72px] z-20 overflow-hidden bg-slate-950 sm:top-20 lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-6 lg:gap-y-4 lg:p-6">
+      <h1 className="sr-only">Jobsites Map</h1>
       <div className="absolute left-4 top-4 z-30 sm:left-6 lg:relative lg:left-auto lg:top-auto lg:z-auto lg:col-start-1 lg:row-start-1">
-        <BackButton label="← Back" />
       </div>
       {/* Map at the top */}
       <section className="absolute inset-0 overflow-hidden bg-slate-900 lg:relative lg:inset-auto lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:min-h-0 lg:overflow-hidden lg:rounded-3xl lg:border lg:border-slate-800">
@@ -723,23 +781,54 @@ export default function JobsitesPage() {
         />
         <ResetViewButton onReset={handleResetView} />
         <MapThemeButton mapTheme={mapTheme} onToggle={handleToggleMapTheme} />
-        {/* Stage colour legend */}
-        <div className="absolute bottom-10 left-3 z-10 rounded-xl border border-slate-700/60 bg-slate-950/80 px-3 py-2 backdrop-blur-sm">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Stage</p>
-          <div className="flex flex-col gap-1">
-            {[
-              ...PUBLIC_STAGE_OPTIONS,
-            ].map(({ label, color }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <svg width="11" height="14" viewBox="0 0 28 36" aria-hidden="true">
-                  <path d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
-                    fill={color} stroke="#0f172a" strokeWidth="1.5"/>
-                  <circle cx="14" cy="14" r="4.5" fill="#0f172a"/>
-                </svg>
-                <span className="text-[11px] text-slate-300">{label}</span>
-              </div>
-            ))}
-          </div>
+        <div
+          className={[
+            'absolute left-3 z-10 rounded-xl border border-slate-700/60 bg-slate-950/80 backdrop-blur-sm transition-[bottom,opacity] duration-300',
+            mobileDrawerOpen ? 'bottom-[calc(72vh+0.75rem)] opacity-90' : 'bottom-24 opacity-100',
+            'lg:bottom-10',
+          ].join(' ')}
+        >
+          <button
+            type="button"
+            onClick={() => setStageLegendOpen((open) => !open)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition hover:text-amber-200"
+            aria-expanded={stageLegendOpen}
+            aria-controls="jobsites-stage-legend"
+          >
+            <span className="flex -space-x-1" aria-hidden="true">
+              {PUBLIC_STAGE_OPTIONS.map(({ label, color }) => (
+                <span
+                  key={label}
+                  className="h-2.5 w-2.5 rounded-full border border-slate-950"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </span>
+            Stage
+            <ChevronDown
+              size={13}
+              className={`transition-transform ${stageLegendOpen ? 'rotate-180' : ''}`}
+              aria-hidden="true"
+            />
+          </button>
+          {stageLegendOpen && (
+            <div id="jobsites-stage-legend" className="flex flex-col gap-1 px-3 pb-2">
+              {PUBLIC_STAGE_OPTIONS.map(({ label, color }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  <svg width="11" height="14" viewBox="0 0 28 36" aria-hidden="true">
+                    <path
+                      d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
+                      fill={color}
+                      stroke="#0f172a"
+                      strokeWidth="1.5"
+                    />
+                    <circle cx="14" cy="14" r="4.5" fill="#0f172a" />
+                  </svg>
+                  <span className="text-[11px] text-slate-300">{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <ProjectMap
           projects={filtered}
@@ -756,24 +845,62 @@ export default function JobsitesPage() {
           onBoundsChange={handleBoundsChange}
           mapTheme={mapTheme}
           mapPadding={mapPadding}
+          showPopups={false}
         />
         {loading && <MapSkeleton />}
       </section>
 
-      <section className="absolute inset-x-0 bottom-0 z-20 mx-auto flex max-h-[58vh] min-h-[280px] w-full max-w-7xl flex-col rounded-t-3xl border border-slate-800 bg-slate-950/96 shadow-[0_-22px_60px_rgba(0,0,0,0.65)] backdrop-blur lg:relative lg:inset-auto lg:col-start-1 lg:row-start-2 lg:max-h-none lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-3xl lg:shadow-none">
+      <section
+        className={[
+          'absolute inset-x-0 bottom-0 z-20 mx-auto flex w-full max-w-7xl flex-col border border-slate-800 bg-slate-950/96 shadow-[0_-22px_60px_rgba(0,0,0,0.65)] backdrop-blur transition-[max-height,transform] duration-300 ease-out md:max-h-[72vh]',
+          mobileDrawerOpen
+            ? 'max-h-[72vh] rounded-t-3xl pb-[env(safe-area-inset-bottom)] lg:max-h-[calc(100vh-7rem)]'
+            : 'max-h-[76px] rounded-t-2xl pb-[env(safe-area-inset-bottom)]',
+          'lg:relative lg:inset-auto lg:col-start-1 lg:row-start-2 lg:max-h-none lg:min-h-0 lg:w-full lg:max-w-none lg:rounded-3xl lg:pb-0 lg:shadow-none',
+        ].join(' ')}
+        aria-label="Jobsites drawer"
+      >
       <div className="shrink-0 space-y-3 border-b border-slate-800/80 px-3 pb-3 pt-3 sm:px-4 lg:px-5">
-      <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-700 lg:hidden" aria-hidden="true" />
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-200">
-          {MAJOR_PROJECT_MESSAGE}
-        </span>
-      </div>
-
+      <button
+        type="button"
+        onClick={() => setMobileDrawerOpen((open) => !open)}
+        className="mx-auto block min-h-10 w-full rounded-t-2xl text-slate-300 lg:hidden"
+        aria-expanded={mobileDrawerOpen}
+        aria-controls="jobsites-mobile-drawer-content"
+      >
+        <span className="mx-auto block h-1.5 w-12 rounded-full bg-slate-700" aria-hidden="true" />
+        {!mobileDrawerOpen && (
+          <span className="mt-2 inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 px-4 py-1.5 text-xs font-bold text-white shadow-lg">
+            View {totalJobsitesCount} Jobsites
+          </span>
+        )}
+      </button>
+      {mobileDrawerOpen && (
+        <div className="flex items-center justify-between gap-3 lg:hidden">
+          <p className="text-sm font-black text-white">View {totalJobsitesCount} Jobsites</p>
+          <button
+            type="button"
+            onClick={() => setMobileDrawerOpen(false)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200 transition hover:border-amber-400/50 hover:text-amber-200"
+            aria-label="Collapse map view"
+            title="Collapse map view"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      <div
+        id="jobsites-mobile-drawer-content"
+        className={mobileDrawerOpen ? 'contents lg:contents' : 'hidden lg:contents'}
+      >
       {/* Sticky compact filter bar */}
       <div className="relative z-30">
         <MapFilters
           search={search}
           onSearchChange={setSearch}
+          province={province}
+          onProvinceChange={setProvince}
+          provinces={provinces}
           stage={stage}
           onStageChange={setStage}
           stages={stages}
@@ -782,10 +909,17 @@ export default function JobsitesPage() {
           trades={trades}
           minValue={minValue}
           onMinValueChange={setMinValue}
+          hiringOnly={hiringOnly}
+          onHiringOnlyChange={setHiringOnly}
+          claimedOnly={claimedOnly}
+          onClaimedOnlyChange={setClaimedOnly}
           onClearAll={clearFilters}
           hasActiveFilters={hasActiveFilters}
         />
       </div>
+      <p className="px-1 text-xs font-semibold text-slate-400">
+        {totalJobsitesCount} Jobsites
+      </p>
 
       {/* Page heading kept visually subtle — provides semantic structure
           for screen readers / SEO without breaking the compact look. The
@@ -794,73 +928,22 @@ export default function JobsitesPage() {
           the list is currently showing (viewport-gated when on, full
           filtered set when off) so the number always matches the cards
           below it. */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1 text-xs text-slate-400">
-          Showing{' '}
-          <span className="font-semibold text-white">
-            {viewportFiltered.length}
-          </span>{' '}
-          of{' '}
-          <span className="font-semibold text-white">{publicProjects.length}</span>{' '}
-          projects
-          <span className="mx-0.5 text-slate-600">·</span>
-          <span className="font-semibold text-amber-300">{mappedCount}</span>{' '}
-          mapped
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={limitToMapView}
-          aria-label="Limit list to current map view"
-          onClick={() => setLimitToMapView((v) => !v)}
-          data-testid="limit-to-map-toggle"
-          title={
-            limitToMapView
-              ? 'List narrows to projects in the current map view. Click to show all filtered projects.'
-              : 'List shows all filtered projects. Click to limit to the current map view.'
-          }
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${
-            limitToMapView
-              ? 'border-blue-500/50 bg-blue-500/15 text-blue-100 hover:border-blue-400'
-              : 'border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-500'
-          }`}
-        >
-          <span
-            aria-hidden="true"
-            className={`inline-block h-2 w-2 rounded-full ${
-              limitToMapView ? 'bg-blue-400' : 'bg-slate-500'
-            }`}
-          />
-          {limitToMapView ? 'Showing this map area' : 'Showing all results'}
-        </button>
-        {viewportActive && hiddenByViewport > 0 && (
-          <button
-            type="button"
-            onClick={() => setLimitToMapView(false)}
-            className="text-xs font-semibold text-slate-400 underline-offset-2 hover:text-amber-200 hover:underline"
-          >
-            Show {hiddenByViewport} more
-          </button>
-        )}
-      </div>
+      
 
       {/* Active filter chips — one per non-default filter (excluding
           search, which is already visible in the bar). The radius chip
           only shows when geolocation is granted, mirroring the drawer
           badge logic. */}
-      <ActiveFilterChips
-        stage={stage}
-        trade={trade}
-        minValue={minValue}
-        onClearStage={() => setStage(DEFAULT_FILTERS.stage)}
-        onClearTrade={() => setTrade(DEFAULT_FILTERS.trade)}
-        onClearMinValue={() => setMinValue(DEFAULT_FILTERS.minValue)}
-        onClearAll={clearFilters}
-      />
+      </div>
       </div>
 
       {/* List / states */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 lg:px-5">
+      <div
+        className={[
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 lg:px-5',
+          mobileDrawerOpen ? 'block' : 'hidden lg:block',
+        ].join(' ')}
+      >
         {loading && <ListSkeleton />}
 
         {!loading && error && (
@@ -879,7 +962,7 @@ export default function JobsitesPage() {
           </div>
         )}
 
-        {!loading && !error && viewportFiltered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-700 bg-slate-950 p-12 text-center">
             <span
               className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-500"
@@ -937,8 +1020,8 @@ export default function JobsitesPage() {
           </div>
         )}
 
-        {!loading && !error && !selectedProject && viewportFiltered.length > 0 && (
-          <ProjectListPanel projects={viewportFiltered} />
+        {!loading && !error && !selectedProject && filtered.length > 0 && (
+          <ProjectListPanel projects={filtered} />
         )}
       </div>
       </section>
@@ -1018,7 +1101,7 @@ function ResetViewButton({ onReset }) {
     <button
       type="button"
       onClick={onReset}
-      title="Reset map to the default regional view"
+      title="Reset map to the North America view"
       aria-label="Reset map view"
       data-testid="reset-view-button"
       className="absolute right-4 top-14 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg backdrop-blur transition hover:border-amber-400/50 hover:text-amber-200"
@@ -1081,7 +1164,11 @@ function LocationStatusPill({ userLocation, locating, locationError, onRetry, on
   }
 
   if (locationError) {
-    const label = 'Showing available projects'
+    const label = locationError.kind === 'denied'
+      ? 'Location blocked'
+      : locationError.kind === 'unsupported'
+        ? 'Location unavailable'
+        : 'Try location again'
     const showRetry = locationError.kind !== 'unsupported'
     return (
       <button
@@ -1093,7 +1180,6 @@ function LocationStatusPill({ userLocation, locating, locationError, onRetry, on
       >
         <span className="inline-block h-2 w-2 rounded-full bg-amber-300" />
         {label}
-        {showRetry ? ' · Use my location' : ''}
       </button>
     )
   }

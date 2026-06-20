@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import DashboardShell from '../../components/layout/DashboardShell'
-import BackButton from '../../components/ui/BackButton'
 import {
   getAllCompanyProfiles,
   getAllProfiles,
@@ -115,7 +114,6 @@ export default function AdminUsersPage() {
       title="Admin - Users"
       subtitle="Browse user profiles and manage company accounts."
     >
-      <BackButton label="Back" />
       {message && (
         <div
           className={`rounded-2xl border p-4 text-sm ${

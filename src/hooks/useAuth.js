@@ -5,6 +5,19 @@ import { normalizeRole } from '../lib/utils'
 // Hard cap on profile-fetch wait to avoid permanent loading state if
 // Supabase ever hangs. After this, the app falls back to auth metadata.
 const PROFILE_FETCH_TIMEOUT_MS = 4000
+const SESSION_FETCH_TIMEOUT_MS = 4000
+
+function withTimeout(promise, fallback, label) {
+  let timeoutId
+  const timeout = new Promise((resolve) => {
+    timeoutId = setTimeout(() => {
+      console.warn(`[useAuth] ${label} timed out, using fallback`)
+      resolve(fallback)
+    }, SESSION_FETCH_TIMEOUT_MS)
+  })
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId))
+}
 
 export function useAuth() {
   const [session, setSession] = useState(null)
@@ -59,8 +72,11 @@ export function useAuth() {
         })
     }
 
-    supabase.auth
-      .getSession()
+    withTimeout(
+      supabase.auth.getSession(),
+      { data: { session: null } },
+      'getSession',
+    )
       .then(({ data }) => {
         if (!mounted) return
         const s = data.session ?? null
@@ -91,8 +107,11 @@ export function useAuth() {
     }
   }, [])
 
-  // DB profiles.role is source of truth; fall back to auth metadata if profile not loaded yet.
-  const role = normalizeRole(profile?.role ?? user?.user_metadata?.role)
+  // DB profiles.role is source of truth. Metadata may bootstrap ordinary
+  // onboarding routes, but never grant admin access if the profile read fails.
+  const profileRole = normalizeRole(profile?.role)
+  const metadataRole = normalizeRole(user?.user_metadata?.role)
+  const role = profileRole || (metadataRole === 'admin' ? '' : metadataRole)
 
   return { user, session, profile, role, loading, profileLoading }
 }

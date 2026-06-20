@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { normalizeApprenticeshipLevel, normalizeTradeForSave } from '../lib/trades'
+import { normalizeList } from '../lib/workerCredentials'
 
 export async function ensureProfile(user) {
   if (!user?.id) throw new Error('No authenticated user.')
@@ -84,7 +85,40 @@ export async function getMyWorkerProfile(userId) {
     .eq('profile_id', userId)
     .maybeSingle()
   if (error) throw new Error(`Failed to load worker profile: ${error.message}`)
-  return data
+  if (!data) return data
+  return attachWorkerCertifications(data)
+}
+
+export async function getWorkerProfileById(workerProfileId) {
+  if (!workerProfileId) return null
+  const { data, error } = await supabase
+    .from('worker_profiles')
+    .select('*')
+    .eq('id', workerProfileId)
+    .maybeSingle()
+  if (error) throw new Error(`Failed to load worker profile: ${error.message}`)
+  if (!data) return data
+  return attachWorkerCertifications(data)
+}
+
+async function attachWorkerCertifications(profile) {
+  const { data, error } = await supabase
+    .from('worker_certifications')
+    .select('id, certification_name, issuer, expires_at, created_at')
+    .eq('worker_profile_id', profile.id)
+    .order('certification_name', { ascending: true })
+  if (error) {
+    const message = String(error.message || '')
+    if (
+      message.includes('worker_certifications') ||
+      message.includes('does not exist') ||
+      message.includes('permission denied')
+    ) {
+      return { ...profile, certifications: [] }
+    }
+    throw new Error(`Failed to load worker certifications: ${error.message}`)
+  }
+  return { ...profile, certifications: data ?? [] }
 }
 
 async function tryUpsertWorkerProfile(row) {
@@ -109,6 +143,35 @@ function cleanNumber(value) {
   if (value === '' || value === null || value === undefined) return null
   const numeric = Number(value)
   return Number.isNaN(numeric) ? null : numeric
+}
+
+function cleanList(value, allowed = null) {
+  const list = normalizeList(value)
+  if (!allowed) return list
+  const allowedSet = new Set(allowed)
+  return list.filter((item) => allowedSet.has(item))
+}
+
+async function replaceWorkerCertifications(workerProfileId, certifications) {
+  const names = [...new Set(normalizeList(certifications))]
+  const { error: deleteError } = await supabase
+    .from('worker_certifications')
+    .delete()
+    .eq('worker_profile_id', workerProfileId)
+  if (deleteError) throw new Error(`Failed to remove old certifications: ${deleteError.message}`)
+
+  if (names.length === 0) return []
+
+  const rows = names.map((name) => ({
+    worker_profile_id: workerProfileId,
+    certification_name: name,
+  }))
+  const { data, error } = await supabase
+    .from('worker_certifications')
+    .insert(rows)
+    .select('id, certification_name, issuer, expires_at, created_at')
+  if (error) throw new Error(`Failed to save certifications: ${error.message}`)
+  return data ?? []
 }
 
 export async function saveWorkerProfile(userId, values) {
@@ -141,6 +204,21 @@ export async function saveWorkerProfile(userId, values) {
     availability: hasValue(values, 'availability')
       ? cleanText(values.availability)
       : current.availability,
+    availability_status: hasValue(values, 'availability_status')
+      ? cleanText(values.availability_status)
+      : current.availability_status,
+    work_preferences: hasValue(values, 'work_preferences')
+      ? cleanList(values.work_preferences)
+      : normalizeList(current.work_preferences),
+    preferred_regions: hasValue(values, 'preferred_regions')
+      ? cleanList(values.preferred_regions)
+      : normalizeList(current.preferred_regions),
+    trade_level: hasValue(values, 'trade_level')
+      ? cleanText(values.trade_level)
+      : current.trade_level,
+    talent_visibility: hasValue(values, 'talent_visibility')
+      ? cleanText(values.talent_visibility) || 'approved_gcs'
+      : current.talent_visibility,
     resume_url: hasValue(values, 'resume_url') ? cleanText(values.resume_url) : current.resume_url,
   }
 
@@ -189,5 +267,8 @@ export async function saveWorkerProfile(userId, values) {
       'Profile saved but cannot be read back. Check that row-level security is configured on worker_profiles — run supabase/003_profile_rls_policies.sql in your Supabase SQL editor.',
     )
   }
-  return verify ?? saved
+  if (hasValue(values, 'certifications')) {
+    await replaceWorkerCertifications(verify.id, values.certifications)
+  }
+  return attachWorkerCertifications(verify ?? saved)
 }

@@ -6,13 +6,13 @@ import {
   Building2,
   CheckCircle2,
   CircleDollarSign,
+  ExternalLink,
   HardHat,
   Mail,
   MapPin,
   Users,
 } from 'lucide-react'
 import PageMeta from '../../components/ui/PageMeta'
-import ProjectMap from '../../components/map/ProjectMap'
 import Logo from '../../components/common/Logo'
 import { createWaitlistSignup } from '../../services/waitlistService'
 
@@ -23,6 +23,8 @@ const roleOptions = [
   'Industry Partner',
   'Investor',
 ]
+
+const constructionSurveyUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf_BG5toMR2Dd-GadmGHgzyix_meRQC7-f0FmGnRYOGvxyH8g/viewform'
 
 const stats = [
   { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
@@ -47,6 +49,15 @@ const workCards = [
     title: 'For Industry',
     points: ['Promote services', 'Connect with projects', 'Reach construction companies', 'Build industry relationships'],
   },
+]
+
+const platformFeatures = [
+  'Interactive Jobsite Map',
+  'Active Construction Projects',
+  'Company Profiles',
+  'Project Claiming',
+  'Hiring Opportunities',
+  'Real-Time Project Updates',
 ]
 
 const CANADA_MAP_CENTER = { lat: 57.2, lng: -96.5 }
@@ -139,32 +150,13 @@ function SectionHeader({ eyebrow, title, text }) {
 
 function PlatformPreview() {
   return (
-    <div className="rounded-3xl border border-slate-800 bg-slate-900 p-3 shadow-2xl">
-      <div className="relative h-[460px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
-        <ProjectMap
-          projects={previewProjects}
-          mappedCount={previewProjects.length}
-          initialCenter={CANADA_MAP_CENTER}
-          initialZoom={3}
-          mapPadding={CANADA_MAP_PADDING}
-          interactive={false}
-          showPopups={false}
-          highlightPaths={[]}
-          highlightFeaturePlaceId={CANADA_GOOGLE_PLACE_ID}
-          highlightFeatureDisplayName="Canada"
-          pinColorOverride="#22c55e"
-          clusterTone="preview-green"
-          highlightTone="canada-preview"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/28 via-transparent to-slate-950/5" aria-hidden="true" />
-        <div className="absolute left-3 top-3 rounded-xl border border-amber-300/35 bg-slate-950/80 px-4 py-3 backdrop-blur-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Future Coverage</p>
-          <p className="mt-1 text-sm font-black text-green-200">Canada-Wide Construction Ecosystem</p>
-        </div>
-      </div>
-      <p className="mt-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-        Platform Preview
-      </p>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(245,180,0,0.12),transparent_62%)] blur-2xl" aria-hidden="true" />
+      <img
+        src="/assets/platform-preview-mockup.png"
+        alt="Jobsite Finder desktop and mobile platform preview"
+        className="relative z-10 h-auto w-full max-w-[900px] object-contain drop-shadow-2xl transition-all duration-500 animate-float hover:scale-[1.02]"
+      />
     </div>
   )
 }
@@ -227,7 +219,7 @@ export default function UnderConstructionPage() {
               This page is a preview of the platform and features being built for our upcoming launch. The full website, interactive jobsite map, contractor dashboards, worker profiles, and hiring tools are coming soon.
             </p>
             <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-              Join our beta waitlist below to be among the first workers, subcontractors, and general contractors to access Jobsite Finder when we launch.
+              Join our beta waitlist below to be among the first workers, subcontractors, and general contractors to access Jobsite Finder when we launch, and take our quick 25-question market research survey to help shape what we build.
             </p>
           </div>
           <p className="inline-flex rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-200">
@@ -243,6 +235,15 @@ export default function UnderConstructionPage() {
             Jobsite Finder is building a modern platform where contractors can create and manage jobsites while workers discover opportunities through an interactive map.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <a
+              href={constructionSurveyUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300 sm:text-base"
+            >
+              Take the Survey
+              <ExternalLink className="h-5 w-5" aria-hidden="true" />
+            </a>
             <a href="#waitlist" className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-amber-400/20 transition hover:bg-amber-300 sm:text-base">
               Join the Waitlist
               <ArrowRight className="h-5 w-5" aria-hidden="true" />
@@ -290,14 +291,22 @@ export default function UnderConstructionPage() {
           </div>
         </section>
 
-        <section className="border-y border-slate-800 bg-[#151a20] px-4 py-20 sm:px-6 lg:px-8">
+        <section className="border-y border-slate-800 bg-[#07101c] px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Platform Preview</p>
-              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A modern workforce platform designed specifically for the construction industry.</h2>
-              <p className="mt-5 text-lg text-slate-300">
-                Built to connect jobsites, contractors, and skilled workers across Canada through one construction-focused platform.
+              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A Better Way to Find Construction Opportunities</h2>
+              <p className="mt-5 text-lg leading-8 text-slate-300">
+                Jobsite Finder helps workers, subcontractors, and general contractors connect through real active jobsites across Canada.
               </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {platformFeatures.map((feature) => (
+                  <div key={feature} className="flex items-center gap-3 text-slate-100">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+                    <span className="font-semibold">{feature}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <PlatformPreview />
           </div>
@@ -374,6 +383,23 @@ export default function UnderConstructionPage() {
                 </p>
               )}
             </form>
+
+            <div className="rounded-lg border border-amber-300/35 bg-amber-300/10 p-5 lg:col-span-2">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-amber-200">Market Research Survey</p>
+              <h3 className="mt-3 text-2xl font-black text-white">25 quick questions. Just a few minutes.</h3>
+              <p className="mt-3 max-w-4xl text-base leading-7 text-slate-200">
+                Tell us what would actually help you find work, workers, or projects. Your answers will help shape Jobsite Finder before launch, including the tools we build first for workers, subcontractors, and contractors.
+              </p>
+              <a
+                href={constructionSurveyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-amber-400/15 transition hover:bg-amber-300 sm:w-auto"
+              >
+                Take the Survey
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
           </div>
         </section>
 
@@ -407,7 +433,7 @@ export default function UnderConstructionPage() {
                 We are currently exploring partnerships, industry collaborations, and investment opportunities across Canada.
               </p>
             </div>
-            <a href="mailto:support@jobsitefinder.ca" className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 font-black text-slate-950 transition hover:bg-amber-300">
+            <a href="mailto:joseph@jobsitefinder.ca" className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 font-black text-slate-950 transition hover:bg-amber-300">
               Contact Us
               <Mail className="h-5 w-5" aria-hidden="true" />
             </a>
@@ -420,8 +446,8 @@ export default function UnderConstructionPage() {
           <div>
             <p className="font-bold text-white">Jobsite Finder Technologies Inc.</p>
             <p className="mt-2">Built for the Trades. Powered by Real Jobsites.</p>
-            <a href="mailto:support@jobsitefinder.ca" className="mt-3 inline-block font-semibold text-amber-300 hover:text-amber-200">
-              support@jobsitefinder.ca
+            <a href="mailto:joseph@jobsitefinder.ca" className="mt-3 inline-block font-semibold text-amber-300 hover:text-amber-200">
+              joseph@jobsitefinder.ca
             </a>
             <p className="mt-4">Copyright © 2026 Jobsite Finder Technologies Inc.</p>
             <p>All Rights Reserved.</p>

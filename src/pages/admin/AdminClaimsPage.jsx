@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardShell from '../../components/layout/DashboardShell'
-import BackButton from '../../components/ui/BackButton'
 import {
   getAllClaims,
   rejectClaim,
@@ -143,7 +142,6 @@ export default function AdminClaimsPage() {
         </select>
       }
     >
-      <BackButton label="Back" />
 
       {message && (
         <div
