@@ -495,8 +495,11 @@ export default function UnderConstructionPage() {
         >
           <button
             type="button"
-            onClick={() => setPreviewOpen(false)}
-            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg transition hover:border-amber-300 hover:text-amber-200"
+            onClick={(event) => {
+              event.stopPropagation()
+              setPreviewOpen(false)
+            }}
+            className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg transition hover:border-amber-300 hover:text-amber-200"
             aria-label="Close platform preview"
           >
             <X className="h-5 w-5" aria-hidden="true" />
