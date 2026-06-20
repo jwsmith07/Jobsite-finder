@@ -468,6 +468,36 @@ export default function UnderConstructionPage() {
         </section>
       </main>
 
+      <section className="border-t border-slate-800 bg-[#07101c] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-10 text-center">
+          <div className="mx-auto max-w-5xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-6 py-10 shadow-2xl shadow-amber-950/10 sm:px-10">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Mission Statement</p>
+            <h2 className="mt-4 text-3xl font-black text-white sm:text-4xl">Let's Build Canada Together</h2>
+            <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-slate-100 sm:text-xl">
+              We encourage teamwork, collaboration, and partnership across Canada as we work together to strengthen the construction industry, connect workers and contractors, and create opportunities from coast to coast.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-5xl border-t border-slate-800 pt-10">
+            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-slate-950/70 px-4 py-2 text-sm font-bold uppercase tracking-[0.16em] text-amber-200">
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Indigenous-Owned Business
+            </div>
+            <h2 className="mt-5 text-3xl font-black text-white sm:text-4xl">Proudly Indigenous-Owned</h2>
+            <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-slate-200">
+              Jobsite Finder Technologies Inc. is an Indigenous-owned Canadian technology company committed to supporting workers, contractors, businesses, and communities through innovation in the construction industry.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-4xl border-t border-slate-800 pt-10">
+            <h2 className="text-2xl font-black text-white sm:text-3xl">Land Acknowledgement</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
+              Jobsite Finder Technologies Inc. respectfully acknowledges the traditional territories of Indigenous Peoples across Canada. We honour the enduring relationships Indigenous Nations have with these lands and recognize their contributions to our communities.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <footer className="bg-[#0b0e12] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-slate-400 sm:flex-row sm:items-end sm:justify-between">
           <div>
