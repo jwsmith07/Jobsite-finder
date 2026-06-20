@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowDown,
   ArrowRight,
@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   Users,
+  X,
 } from 'lucide-react'
 import PageMeta from '../../components/ui/PageMeta'
 import Logo from '../../components/common/Logo'
@@ -148,15 +149,25 @@ function SectionHeader({ eyebrow, title, text }) {
   )
 }
 
-function PlatformPreview() {
+function PlatformPreview({ onOpen }) {
   return (
     <div className="relative">
       <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(245,180,0,0.12),transparent_62%)] blur-2xl" aria-hidden="true" />
-      <img
-        src="/assets/platform-preview-mockup.png"
-        alt="Jobsite Finder desktop and mobile platform preview"
-        className="relative z-10 h-auto w-full max-w-[900px] object-contain drop-shadow-2xl transition-all duration-500 animate-float hover:scale-[1.02]"
-      />
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group relative z-10 block w-full cursor-zoom-in text-left focus:outline-none focus:ring-2 focus:ring-amber-300/70 focus:ring-offset-4 focus:ring-offset-[#07101c]"
+        aria-label="Open larger platform preview"
+      >
+        <img
+          src="/assets/platform-preview-mockup.png"
+          alt="Jobsite Finder desktop and mobile platform preview"
+          className="h-auto w-full max-w-[900px] object-contain drop-shadow-2xl transition-all duration-500 animate-float group-hover:scale-[1.02]"
+        />
+        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-slate-700 bg-slate-950/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-amber-200 opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+          Click to zoom
+        </span>
+      </button>
     </div>
   )
 }
@@ -165,6 +176,22 @@ export default function UnderConstructionPage() {
   const [form, setForm] = useState({ name: '', email: '', role: 'Trades Worker', message: '' })
   const [status, setStatus] = useState({ type: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  useEffect(() => {
+    if (!previewOpen) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setPreviewOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [previewOpen])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -308,7 +335,7 @@ export default function UnderConstructionPage() {
                 ))}
               </div>
             </div>
-            <PlatformPreview />
+            <PlatformPreview onOpen={() => setPreviewOpen(true)} />
           </div>
         </section>
 
@@ -457,6 +484,31 @@ export default function UnderConstructionPage() {
           </a>
         </div>
       </footer>
+
+      {previewOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/92 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Large platform preview"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(false)}
+            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg transition hover:border-amber-300 hover:text-amber-200"
+            aria-label="Close platform preview"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <img
+            src="/assets/platform-preview-mockup.png"
+            alt="Large Jobsite Finder desktop and mobile platform preview"
+            className="max-h-[92vh] w-full max-w-[1400px] object-contain drop-shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }
