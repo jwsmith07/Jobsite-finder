@@ -305,7 +305,7 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
               </select>
               {projects.length === 0 && (
                 <p className="mt-1 text-xs text-slate-500">
-                  No approved projects. Claim a project first to post jobs.
+                  No approved projects yet. Claim a project from the map first; once an admin approves it, you can post jobs here.
                 </p>
               )}
             </div>
@@ -451,8 +451,16 @@ export function JobsManager({ roleLabel = 'General Contractor' }) {
           </div>
         )}
         {!loading && !error && jobs.length === 0 && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
-            You have not posted any jobs yet.
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+            <h3 className="text-lg font-bold text-white">No jobs posted yet</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Post your first trade role once you have an approved claimed project. Workers will see it on the project page.
+            </p>
+            {projects.length === 0 ? (
+              <Link to="/jobsites" className="mt-4 inline-flex rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300">
+                Find a project to claim
+              </Link>
+            ) : null}
           </div>
         )}
 

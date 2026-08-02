@@ -7,6 +7,7 @@ import JobCard from '../../components/jobs/JobCard'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDate } from '../../lib/utils'
 import { getAvailabilityLabel, getProfileCertifications, normalizeList } from '../../lib/workerCredentials'
+import { launchFlags } from '../../config/launchMode'
 import { createJobPost, deleteJobPost, updateJobPost } from '../../services/jobsService'
 import { updateApplication } from '../../services/applicationsService'
 import {
@@ -21,7 +22,9 @@ import {
   updateProjectSubcontractorAssignment,
 } from '../../services/gcProjectWorkspaceService'
 
-const tabs = ['overview', 'photos', 'jobs', 'applicants', 'talent', 'candidates', 'subcontractors']
+const tabs = launchFlags.SHOW_ADVANCED_GC_WORKSPACE
+  ? ['overview', 'photos', 'jobs', 'applicants', 'talent', 'candidates', 'subcontractors']
+  : ['overview', 'jobs', 'applicants']
 const emptyJob = {
   title: '',
   trade: '',
@@ -92,19 +95,23 @@ function buildActivity(data) {
     date: application.created_at,
     label: `Applicant added: ${application.worker_name || 'Applicant'}`,
   }))
-  const assignments = (data.subcontractorAssignments || []).map((assignment) => ({
-    id: assignment.id,
-    type: 'subcontractor',
-    date: assignment.created_at,
-    label: `Subcontractor assigned: ${assignment.subcontractor?.company_name || 'Company'}`,
-  }))
-  const images = (data.images || []).map((image) => ({
-    id: image.id,
-    type: 'photo',
-    date: image.created_at,
-    label: `Photo uploaded${image.caption ? `: ${image.caption}` : ''}`,
-  }))
-  return [...jobs, ...applications, ...assignments, ...images]
+  const advancedActivity = launchFlags.SHOW_ADVANCED_GC_WORKSPACE
+    ? [
+        ...(data.subcontractorAssignments || []).map((assignment) => ({
+          id: assignment.id,
+          type: 'subcontractor',
+          date: assignment.created_at,
+          label: `Subcontractor assigned: ${assignment.subcontractor?.company_name || 'Company'}`,
+        })),
+        ...(data.images || []).map((image) => ({
+          id: image.id,
+          type: 'photo',
+          date: image.created_at,
+          label: `Photo uploaded${image.caption ? `: ${image.caption}` : ''}`,
+        })),
+      ]
+    : []
+  return [...jobs, ...applications, ...advancedActivity]
     .filter((item) => item.date)
     .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
     .slice(0, 8)
@@ -489,27 +496,17 @@ export default function GCProjectWorkspacePage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Project Photos" value={data.summary.photoCount} />
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard label="Open Jobs" value={data.summary.openJobsCount} />
         <SummaryCard label="Applicants" value={data.summary.applicantCount} />
-        <SummaryCard label="Subcontractors" value={data.summary.assignedSubcontractorCount} />
+        <SummaryCard label="Open Positions" value={hiringSummary.openPositionsCount || 0} />
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard label="Reviewed" value={hiringSummary.reviewedCount || 0} />
         <SummaryCard label="Interview" value={hiringSummary.interviewCount || 0} />
         <SummaryCard label="Hired" value={hiringSummary.hiredCount || 0} />
         <SummaryCard label="Rejected" value={hiringSummary.rejectedCount || 0} />
-        <SummaryCard label="Open Positions" value={hiringSummary.openPositionsCount || 0} />
-        <SummaryCard label="Talent Pool" value={data.talentPool?.length || 0} />
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Saved Candidates" value={hiringSummary.savedCandidateCount || 0} />
-        <SummaryCard label="Interviews" value={hiringSummary.candidateInterviewCount || 0} />
-        <SummaryCard label="Offers" value={hiringSummary.candidateOfferCount || 0} />
-        <SummaryCard label="Hires" value={hiringSummary.candidateHireCount || 0} />
       </section>
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
@@ -1145,14 +1142,16 @@ function ApplicantCard({
         </div>
       </div>
       {expanded && <CredentialPreview profile={profile} match={application.match} />}
-      <CandidateControls
-        candidate={application.candidate}
-        workerProfileId={application.worker_profile_id}
-        busy={candidateBusy}
-        onSaveCandidate={onSaveCandidate}
-        onUpdateCandidate={onUpdateCandidate}
-        onRemoveCandidate={onRemoveCandidate}
-      />
+      {launchFlags.SHOW_CANDIDATE_PIPELINE && (
+        <CandidateControls
+          candidate={application.candidate}
+          workerProfileId={application.worker_profile_id}
+          busy={candidateBusy}
+          onSaveCandidate={onSaveCandidate}
+          onUpdateCandidate={onUpdateCandidate}
+          onRemoveCandidate={onRemoveCandidate}
+        />
+      )}
     </article>
   )
 }

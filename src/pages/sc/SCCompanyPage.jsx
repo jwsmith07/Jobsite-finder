@@ -50,9 +50,9 @@ export default function SCCompanyPage() {
         company_type: 'sc',
       })
       setInitial(saved)
-      setMessage({ type: 'success', text: 'Saved successfully' })
+      setMessage({ type: 'success', text: 'Company profile saved. Next: find a project, request participation, then post jobs after approval.' })
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: 'error', text: err.message || 'Could not save your company profile. Please check the form and try again.' })
     } finally {
       setSaving(false)
     }
@@ -91,7 +91,7 @@ export default function SCCompanyPage() {
         </span>
         <h1 className="mt-3 text-2xl font-bold">Company profile</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Tell GCs and trade workers what your crew specializes in.
+          Tell GCs what your crew specializes in and help workers recognize your job posts.
         </p>
       </div>
 

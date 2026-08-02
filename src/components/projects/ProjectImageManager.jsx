@@ -19,12 +19,14 @@ export default function ProjectImageManager({
   canManage = false,
   initialImages = [],
   onImagesChanged,
+  variant = 'gallery',
 }) {
   const inputRef = useRef(null)
   const [images, setImages] = useState(initialImages)
   const [uploading, setUploading] = useState(false)
   const [workingId, setWorkingId] = useState(null)
   const [message, setMessage] = useState(null)
+  const isHero = variant === 'hero'
 
   useEffect(() => {
     setImages(initialImages || [])
@@ -51,7 +53,7 @@ export default function ProjectImageManager({
         altText: projectName ? `${projectName} jobsite photo` : 'Jobsite photo',
       })
       await refreshImages()
-      setMessage({ type: 'success', text: 'Image uploaded.' })
+      setMessage({ type: 'success', text: isHero ? 'Hero image uploaded.' : 'Image uploaded.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
     } finally {
@@ -66,7 +68,7 @@ export default function ProjectImageManager({
     try {
       await setPrimaryProjectImage(image)
       await refreshImages()
-      setMessage({ type: 'success', text: 'Primary image updated.' })
+      setMessage({ type: 'success', text: isHero ? 'Hero image updated.' : 'Primary image updated.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
     } finally {
@@ -75,7 +77,7 @@ export default function ProjectImageManager({
   }
 
   async function handleDelete(image) {
-    const ok = window.confirm('Remove this jobsite image? This cannot be undone.')
+    const ok = window.confirm(isHero ? 'Remove this hero image? This cannot be undone.' : 'Remove this jobsite image? This cannot be undone.')
     if (!ok) return
 
     setWorkingId(image.id)
@@ -83,7 +85,7 @@ export default function ProjectImageManager({
     try {
       await deleteProjectImage(image)
       await refreshImages()
-      setMessage({ type: 'success', text: 'Image removed.' })
+      setMessage({ type: 'success', text: isHero ? 'Hero image removed.' : 'Image removed.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
     } finally {
@@ -109,8 +111,10 @@ export default function ProjectImageManager({
                 <ImagePlus size={18} aria-hidden="true" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">Jobsite images</p>
-                <p className="mt-1 text-xs text-slate-400">JPG, PNG, or WEBP up to 5MB.</p>
+                <p className="text-sm font-semibold text-white">{isHero ? 'Hero image' : 'Jobsite images'}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {isHero ? 'Upload a strong project photo. JPG, PNG, or WEBP up to 5MB.' : 'JPG, PNG, or WEBP up to 5MB.'}
+                </p>
               </div>
             </div>
             <button
@@ -120,7 +124,7 @@ export default function ProjectImageManager({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:opacity-60"
             >
               <Upload size={15} aria-hidden="true" />
-              {uploading ? 'Uploading...' : 'Upload Image'}
+              {uploading ? 'Uploading...' : isHero ? 'Upload Hero Image' : 'Upload Image'}
             </button>
           </div>
         </div>
@@ -128,7 +132,7 @@ export default function ProjectImageManager({
 
       {images.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-black/25 p-4 text-sm text-slate-400">
-          No jobsite images yet.
+          {isHero ? 'No hero image uploaded yet.' : 'No jobsite images yet.'}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -152,7 +156,7 @@ export default function ProjectImageManager({
                       : 'border-slate-700 bg-slate-900 text-slate-400'
                   }`}>
                     <Star size={11} aria-hidden="true" />
-                    {image.is_primary ? 'Primary' : 'Gallery'}
+                    {image.is_primary ? (isHero ? 'Hero' : 'Primary') : 'Gallery'}
                   </span>
                   {canManage && (
                     <button
@@ -174,7 +178,7 @@ export default function ProjectImageManager({
                     disabled={workingId === image.id}
                     className="w-full rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-xs font-semibold text-yellow-300 transition hover:border-yellow-400 hover:bg-yellow-400/20 disabled:opacity-60"
                   >
-                    Make Primary
+                    {isHero ? 'Use as Hero' : 'Make Primary'}
                   </button>
                 )}
               </div>

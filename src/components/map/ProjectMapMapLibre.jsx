@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   getPublicStageColor,
   getPublicStageKey,
+  projectHasHiringPulse,
 } from '../../lib/projectStages'
 import CanadaBoundaryLayerMapLibre from './CanadaBoundaryLayerMapLibre'
 
@@ -53,21 +54,26 @@ function buildPinElement(project, pinColorOverride) {
   const color = pinColorOverride || getPublicStageColor(project?.stage)
   const sourceType = project?.source_type
   const isContractorCreated = sourceType === 'contractor_created'
+  const openRolesCount = Number(project?._openRolesCount) || 0
+  const isHiring = projectHasHiringPulse(project) || openRolesCount > 0
+  const claimed = !!project?.claimed_by_company_id
   const el = document.createElement('button')
   el.type = 'button'
   el.className = 'jf-maplibre-pin'
   el.setAttribute('aria-label', project?.project_name ? `Select ${project.project_name}` : 'Select jobsite')
-  el.style.width = '28px'
-  el.style.height = '36px'
+  el.style.width = '32px'
+  el.style.height = '40px'
   el.style.border = '0'
   el.style.padding = '0'
   el.style.background = 'transparent'
   el.style.cursor = 'pointer'
   el.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36" style="display:block">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" style="display:block">
+      ${isHiring ? '<circle cx="16" cy="16" r="14" fill="rgba(251,191,36,0.20)" stroke="#facc15" stroke-width="2"/>' : ''}
       <path d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
-        fill="${color}" stroke="#0f172a" stroke-width="1.5"/>
-      <circle cx="14" cy="14" r="${isContractorCreated ? '5.8' : '4.5'}" fill="${isContractorCreated ? '#2563eb' : '#0f172a'}" stroke="#0f172a" stroke-width="${isContractorCreated ? '1.5' : '0'}"/>
+        transform="translate(2 2)" fill="${color}" stroke="#0f172a" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="${isContractorCreated || claimed ? '5.8' : '4.5'}" fill="${isContractorCreated || claimed ? '#2563eb' : '#0f172a'}" stroke="#0f172a" stroke-width="${isContractorCreated || claimed ? '1.5' : '0'}"/>
+      ${isHiring ? '<circle cx="24" cy="8" r="4.2" fill="#facc15" stroke="#0f172a" stroke-width="1.5"/>' : ''}
     </svg>`
   return el
 }

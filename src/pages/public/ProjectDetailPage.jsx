@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, DollarSign, FileText, Image as ImageIcon, MapPin, Navigation, ShieldCheck, UsersRound } from 'lucide-react'
+import { BadgeCheck, BriefcaseBusiness, Building2, CalendarDays, DollarSign, FileText, MapPin, Navigation, ShieldCheck, UsersRound } from 'lucide-react'
 import { useProject } from '../../hooks/useProjects'
 import { useAuth } from '../../hooks/useAuth'
 import { getJobsByProjectId } from '../../services/jobsService'
 import { updateContractorProjectLocation } from '../../services/projectsService'
 import { createClaim, getApprovedProjectCompanies, getMyClaimForProject } from '../../services/claimsService'
 import { getContractorDisplayLocation, getPublicDisplayLocation, hasContractorLocation, normalizeRole, formatCurrencyShort } from '../../lib/utils'
-import { PUBLIC_STAGE_TONES, getPublicStageMeta } from '../../lib/projectStages'
 import JobCard from '../../components/jobs/JobCard'
 import ApplyButton from '../../components/jobs/ApplyButton'
 import SaveJobButton from '../../components/jobs/SaveJobButton'
+import { launchFlags } from '../../config/launchMode'
 import ProjectImageManager from '../../components/projects/ProjectImageManager'
 import PageMeta from '../../components/ui/PageMeta'
 import { breadcrumbSchema, canonicalUrl } from '../../lib/seo'
@@ -19,12 +19,59 @@ function stripHtml(html) {
   return html ? html.replace(/<[^>]*>/g, '') : ''
 }
 
+function cleanText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
+
+function parseMetadataDescription(description) {
+  const text = cleanText(stripHtml(description))
+  if (!text) return { description: '', facts: [] }
+
+  const parts = text
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  const colonFacts = parts
+    .map((part) => {
+      const match = /^([^:]{2,40}):\s*(.+)$/i.exec(part)
+      if (!match) return null
+      return { label: match[1].trim(), value: match[2].trim() }
+    })
+    .filter(Boolean)
+
+  const looksLikeMetadata =
+    parts.length > 1 &&
+    (
+      colonFacts.length >= 1 ||
+      text.length < 180 ||
+      !/[.!?]\s/.test(text)
+    )
+
+  if (!looksLikeMetadata) return { description: text, facts: [] }
+
+  const facts = []
+  parts.forEach((part, index) => {
+    const match = /^([^:]{2,40}):\s*(.+)$/i.exec(part)
+    if (match) {
+      facts.push({ label: match[1].trim(), value: match[2].trim() })
+    } else if (index === 0) {
+      facts.push({ label: 'Imported Summary', value: part })
+    }
+  })
+
+  return { description: '', facts }
+}
+
 const TRAVEL_MODES = [
   { key: 'DRIVING',   label: 'Drive',   icon: '🚗' },
   { key: 'WALKING',   label: 'Walk',    icon: '🚶' },
   { key: 'BICYCLING', label: 'Bike',    icon: '🚲' },
   { key: 'TRANSIT',   label: 'Transit', icon: '🚌' },
 ]
+
+const CONSTRUCTION_PLACEHOLDER_IMAGE =
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80'
 
 function Field({ label, value }) {
   return (
@@ -111,40 +158,117 @@ function getPrimaryGeneralContractor(companies) {
   )
 }
 
-function getMainContractorName(project, companies) {
-  const primaryGc = getPrimaryGeneralContractor(companies)
+function getProjectStatusLabel(stage) {
+  const normalized = String(stage || '').toLowerCase()
+  if (normalized.includes('complete') || normalized.includes('close')) return 'Complete'
+  if (normalized.includes('planning') || normalized.includes('proposed') || normalized.includes('pre')) return 'Planning'
+  return 'Active Construction'
+}
+
+function getClaimStatusLabel(primaryGc) {
+  return primaryGc ? 'General Contractor Claimed' : 'General Contractor Not Yet Claimed'
+}
+
+function HeroImage({ imageUrl, projectName }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const src = !imageFailed ? (imageUrl || CONSTRUCTION_PLACEHOLDER_IMAGE) : null
+
+  if (!src) {
+    return (
+      <div className="flex h-full min-h-[240px] items-center justify-center bg-slate-800 text-sm font-semibold uppercase tracking-wider text-slate-400">
+        Construction Project
+      </div>
+    )
+  }
+
   return (
-    primaryGc?.company?.company_name ||
-    project.general_contractor ||
-    project.owner ||
-    'Not available yet'
+    <img
+      src={src}
+      alt={`${projectName || 'Construction project'} hero`}
+      className="h-full w-full object-cover"
+      onError={() => setImageFailed(true)}
+    />
   )
 }
 
-function ProjectOverview({ project, jobs, jobsLoading, companies }) {
-  const stageMeta = getPublicStageMeta(project.stage)
-  const publicLocation = getContractorDisplayLocation(project)
-  const openRoles =
-    jobsLoading
-      ? 'Not available yet'
-      : jobs.length > 0
-        ? `${jobs.length} Open ${jobs.length === 1 ? 'Role' : 'Roles'}`
-        : 'No active hiring yet'
+function ProjectHero({ project, imageUrl, location, primaryGc, isHiring }) {
+  const projectStatus = getProjectStatusLabel(project.stage)
+  const contractorName = primaryGc?.company?.company_name || 'General Contractor Not Yet Claimed'
 
   return (
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <OverviewItem label="Stage" icon={FileText}>
-        <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${PUBLIC_STAGE_TONES[stageMeta.key]}`}>
-          {stageMeta.label}
-        </span>
-      </OverviewItem>
-      <OverviewItem label="Estimated Value" value={project.estimated_value ? formatCurrencyShort(project.estimated_value) : 'Not available yet'} icon={DollarSign} />
-      <OverviewItem label="Timeline" value={getTimeline(project)} icon={CalendarDays} />
-      <OverviewItem label="Project Type" value={project.project_type} icon={Building2} />
-      <OverviewItem label="Sector" value={project.sector} icon={BriefcaseBusiness} />
-      <OverviewItem label="Location" value={publicLocation || 'Not available yet'} icon={MapPin} />
-      <OverviewItem label="Main Contractor" value={getMainContractorName(project, companies)} icon={BriefcaseBusiness} />
-      <OverviewItem label="Open Roles" value={openRoles} icon={UsersRound} />
+    <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950">
+      <div className="aspect-[16/10] bg-slate-900 sm:aspect-[16/7]">
+        <HeroImage imageUrl={imageUrl} projectName={project.project_name} />
+      </div>
+      <div className="p-5 sm:p-7">
+        <h1 className="text-3xl font-black leading-tight text-white sm:text-5xl">
+          {project.project_name || 'Project details'}
+        </h1>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <InlineBadge tone="slate">
+            <MapPin size={13} aria-hidden="true" />
+            {location || 'Location not listed'}
+          </InlineBadge>
+          <InlineBadge tone="emerald">{projectStatus}</InlineBadge>
+          <InlineBadge tone={primaryGc ? 'emerald' : 'slate'}>
+            {getClaimStatusLabel(primaryGc)}
+          </InlineBadge>
+          <InlineBadge tone={isHiring ? 'amber' : 'slate'}>
+            {isHiring ? 'Hiring' : 'No Open Positions'}
+          </InlineBadge>
+        </div>
+        <p className="mt-4 text-sm font-semibold text-slate-300 sm:text-base">
+          {contractorName}
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function ProjectOverview({ project, jobs, jobsLoading }) {
+  const parsedDescription = parseMetadataDescription(project.description)
+  const openRoleCount = jobsLoading ? null : getOpenRoleCount(jobs)
+  const campJobCount = (jobs ?? []).filter((job) => job.camp_available === true).length
+  const unionJobCount = (jobs ?? []).filter((job) => (
+    Array.isArray(job.hiring_tags) &&
+    job.hiring_tags.some((tag) => String(tag).toLowerCase().includes('union'))
+  )).length
+  const factItems = [
+    { label: 'Sector', value: project.sector || project.project_type || 'Not available yet', icon: BriefcaseBusiness },
+    { label: 'Estimated Completion', value: project.end_date ? getYear(project.end_date) : 'Not available yet', icon: CalendarDays },
+    { label: 'Project Value', value: project.estimated_value ? formatCurrencyShort(project.estimated_value) : 'Not available yet', icon: DollarSign },
+    {
+      label: 'Open Jobs',
+      value: jobsLoading ? 'Checking...' : `${openRoleCount} open ${openRoleCount === 1 ? 'role' : 'roles'}`,
+      icon: UsersRound,
+    },
+    { label: 'Camp Jobs', value: campJobCount > 0 ? `${campJobCount} available` : 'Not listed', icon: Building2 },
+    { label: 'Union', value: unionJobCount > 0 ? 'Union roles listed' : 'Not listed', icon: ShieldCheck },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {factItems.map(({ label, value, icon: Icon }) => (
+          <OverviewItem key={`${label}-${value}`} label={label} value={value} icon={Icon} />
+        ))}
+      </div>
+      <div className="rounded-2xl border border-slate-800 bg-black/25 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Project Description</p>
+        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
+          {parsedDescription.description || 'No detailed project description has been provided yet.'}
+        </p>
+      </div>
+      {parsedDescription.facts.length > 0 && (
+        <div className="rounded-2xl border border-slate-800 bg-black/25 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Project Facts</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {parsedDescription.facts.map((fact) => (
+              <Field key={`${fact.label}-${fact.value}`} label={fact.label} value={fact.value} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -327,99 +451,43 @@ function getOpenRoleCount(jobs) {
   }, 0)
 }
 
-function buildJobsByCompany(jobs) {
-  const map = new Map()
-  for (const job of jobs ?? []) {
-    if (!job.company_profile_id) continue
-    const key = String(job.company_profile_id)
-    const list = map.get(key) || []
-    list.push(job)
-    map.set(key, list)
-  }
-  return map
-}
-
 function formatCompanyRole(role) {
   return role === 'subcontractor' ? 'Subcontractor' : 'General Contractor'
 }
 
-function CompanyHiringStatus({ openRoleCount }) {
-  const hasOpenRoles = openRoleCount > 0
+function TeamCompanyRow({ connection, fallbackName, roleLabel, featured = false }) {
+  const company = connection?.company
+  const companyName = company?.company_name || fallbackName
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
-        hasOpenRoles
-          ? 'border-green-600/50 bg-green-500/15 text-green-200'
-          : 'border-slate-700 bg-slate-950 text-slate-400'
-      }`}>
-        {hasOpenRoles ? 'Hiring Now' : 'No open roles yet'}
-      </span>
-      {hasOpenRoles && (
-        <span className="text-sm font-semibold text-slate-200">
-          {openRoleCount} open {openRoleCount === 1 ? 'role' : 'roles'}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function ProjectCompanyCard({ connection, jobs = [], fallbackName = 'Approved company', featured = false }) {
-  const companyName = connection.company?.company_name || fallbackName
-  const roleLabel = formatCompanyRole(connection.company_role)
-  const openRoleCount = getOpenRoleCount(jobs)
-  const hasOpenRoles = openRoleCount > 0
-
-  return (
-    <article className={`rounded-2xl border p-4 transition sm:p-5 ${
+    <article className={`rounded-2xl border p-4 ${
       featured
-        ? 'border-yellow-400/35 bg-yellow-400/[0.07] shadow-lg shadow-yellow-400/5'
+        ? 'border-yellow-400/35 bg-yellow-400/[0.07]'
         : 'border-slate-800 bg-black/25'
     }`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <CompanyLogo company={connection.company} />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="break-words text-base font-black text-white">{companyName}</h3>
-              {connection.company?.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
-                  <BadgeCheck size={12} aria-hidden="true" />
-                  Verified
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-sm font-semibold text-yellow-200">{roleLabel}</p>
-            {connection.trade_scope && (
-              <p className="mt-2 text-sm leading-6 text-slate-300">{connection.trade_scope}</p>
+      <div className="flex min-w-0 gap-3">
+        <CompanyLogo company={company} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="break-words text-base font-black text-white">{companyName}</h3>
+            {company?.verified && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                <BadgeCheck size={12} aria-hidden="true" />
+                Verified
+              </span>
             )}
           </div>
+          <p className="mt-1 text-sm font-semibold text-yellow-200">{roleLabel}</p>
+          {connection?.trade_scope && (
+            <p className="mt-2 text-sm leading-6 text-slate-300">{connection.trade_scope}</p>
+          )}
         </div>
-        <div className="shrink-0 sm:text-right">
-          <CompanyHiringStatus openRoleCount={openRoleCount} />
-        </div>
-      </div>
-      <div className="mt-4 flex flex-col gap-2 border-t border-slate-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-slate-500">
-          {hasOpenRoles
-            ? 'Open jobs are tied to this jobsite.'
-            : 'This company is connected to the project, but has not posted live roles.'}
-        </p>
-        {hasOpenRoles && (
-          <a
-            href="#project-open-jobs"
-            className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black transition hover:bg-yellow-300"
-          >
-            View Jobs / Apply
-          </a>
-        )}
       </div>
     </article>
   )
 }
 
-function ProjectTeamList({ companies, jobs, loading, error }) {
-  const jobsByCompany = buildJobsByCompany(jobs)
+function ProjectTeamList({ project, companies, loading, error }) {
   const primaryGc = getPrimaryGeneralContractor(companies)
   const subcontractors = companies.filter((c) => c.status === 'approved' && c.company_role === 'subcontractor')
 
@@ -428,37 +496,61 @@ function ProjectTeamList({ companies, jobs, loading, error }) {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-yellow-300">
-          Primary General Contractor
-        </p>
-        <div className="mt-2">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <article className="rounded-2xl border border-slate-800 bg-black/25 p-4">
+          <div className="flex gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-700 bg-slate-950 text-slate-300">
+              <Building2 size={18} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Owner</p>
+              <h3 className="mt-1 break-words text-base font-black text-white">
+                {project.owner || 'Owner not listed'}
+              </h3>
+            </div>
+          </div>
+        </article>
+        <div>
           {primaryGc ? (
-            <ProjectCompanyCard
+            <TeamCompanyRow
               connection={primaryGc}
-              jobs={jobsByCompany.get(String(primaryGc.company_profile_id || primaryGc.company?.id)) || []}
               fallbackName="Approved general contractor"
+              roleLabel="General Contractor"
               featured
             />
           ) : (
-            <Field label="Primary General Contractor" value="Not approved yet" />
+            <article className="rounded-2xl border border-slate-800 bg-black/25 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">General Contractor</p>
+              <h3 className="mt-1 text-base font-black text-white">Not Yet Claimed</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Claim this project to verify the lead contractor and start hiring from this page.
+              </p>
+              <a
+                href="#claim-project"
+                className="mt-4 inline-flex rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black transition hover:bg-yellow-300"
+              >
+                Claim Project
+              </a>
+            </article>
           )}
         </div>
       </div>
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-yellow-300">
-          Subcontractors on this jobsite
+          Subcontractors
         </p>
         {subcontractors.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-400">No approved subcontractors listed yet.</p>
+          <p className="mt-2 rounded-2xl border border-slate-800 bg-black/25 p-4 text-sm text-slate-400">
+            No subcontractors listed yet.
+          </p>
         ) : (
           <div className="mt-2 grid gap-3 lg:grid-cols-2">
             {subcontractors.map((connection) => (
-              <ProjectCompanyCard
+              <TeamCompanyRow
                 key={connection.id}
                 connection={connection}
-                jobs={jobsByCompany.get(String(connection.company_profile_id || connection.company?.id)) || []}
                 fallbackName="Approved subcontractor"
+                roleLabel="Subcontractor"
               />
             ))}
           </div>
@@ -468,44 +560,118 @@ function ProjectTeamList({ companies, jobs, loading, error }) {
   )
 }
 
-function PrimaryGeneralContractor({ companies, jobs, loading, error }) {
-  const jobsByCompany = buildJobsByCompany(jobs)
-  const primaryGc = getPrimaryGeneralContractor(companies)
+function buildHiringCompanies(jobs, companies) {
+  const claimsByCompanyId = new Map()
+  for (const connection of companies ?? []) {
+    if (connection.company_profile_id) claimsByCompanyId.set(String(connection.company_profile_id), connection)
+    if (connection.company?.id) claimsByCompanyId.set(String(connection.company.id), connection)
+  }
 
-  if (loading) return <p className="text-sm text-slate-400">Loading general contractor...</p>
-  if (error) return <p className="text-sm text-red-300">{error.message}</p>
+  const map = new Map()
+  for (const job of jobs ?? []) {
+    const companyId = job.company_profile_id || job.company?.id
+    const key = companyId ? String(companyId) : job.company?.company_name || 'unknown'
+    const existing = map.get(key) || {
+      company: job.company || null,
+      connection: companyId ? claimsByCompanyId.get(String(companyId)) : null,
+      jobs: [],
+    }
+    existing.jobs.push(job)
+    map.set(key, existing)
+  }
 
-  return primaryGc ? (
-    <ProjectCompanyCard
-      connection={primaryGc}
-      jobs={jobsByCompany.get(String(primaryGc.company_profile_id || primaryGc.company?.id)) || []}
-      fallbackName="Approved general contractor"
-      featured
-    />
-  ) : (
-    <Field label="Primary General Contractor" value="Not listed yet" />
-  )
+  return Array.from(map.values())
 }
 
-function SubcontractorList({ companies, jobs, loading, error }) {
-  const jobsByCompany = buildJobsByCompany(jobs)
-  const subcontractors = companies.filter((c) => c.status === 'approved' && c.company_role === 'subcontractor')
+function HiringCompaniesList({ jobs, companies }) {
+  const hiringCompanies = buildHiringCompanies(jobs, companies)
 
-  if (loading) return <p className="text-sm text-slate-400">Loading subcontractors...</p>
-  if (error) return <p className="text-sm text-red-300">{error.message}</p>
-  if (subcontractors.length === 0) return <p className="text-sm text-slate-400">No participating subcontractors listed yet.</p>
+  if (hiringCompanies.length === 0) {
+    return <p className="text-sm text-slate-400">No hiring companies have open roles on this project yet.</p>
+  }
 
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      {subcontractors.map((connection) => (
-        <ProjectCompanyCard
-          key={connection.id}
-          connection={connection}
-          jobs={jobsByCompany.get(String(connection.company_profile_id || connection.company?.id)) || []}
-          fallbackName="Approved subcontractor"
-        />
-      ))}
+      {hiringCompanies.map(({ company, connection, jobs: companyJobs }) => {
+        const companyName = company?.company_name || connection?.company?.company_name || 'Hiring company'
+        const roleLabel = connection?.company_role ? formatCompanyRole(connection.company_role) : 'Hiring Company'
+        const openRoleCount = getOpenRoleCount(companyJobs)
+
+        return (
+          <article key={`${companyName}-${companyJobs[0]?.id || 'jobs'}`} className="rounded-2xl border border-slate-800 bg-black/25 p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 gap-3">
+                <CompanyLogo company={company || connection?.company} />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="break-words text-base font-black text-white">{companyName}</h3>
+                    {(company?.verified || connection?.company?.verified) && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                        <BadgeCheck size={12} aria-hidden="true" />
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm font-semibold text-yellow-200">{roleLabel}</p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    {openRoleCount} open {openRoleCount === 1 ? 'role' : 'roles'}
+                  </p>
+                </div>
+              </div>
+              <a
+                href="#project-open-jobs"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black transition hover:bg-yellow-300"
+              >
+                View Jobs
+              </a>
+            </div>
+            <div className="mt-4 border-t border-slate-800 pt-3">
+              <ul className="space-y-1 text-sm text-slate-300">
+                {companyJobs.slice(0, 3).map((job) => (
+                  <li key={job.id}>{job.title}</li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        )
+      })}
     </div>
+  )
+}
+
+function ProjectLocation({ location, mapsUrl }) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="inline-flex items-center gap-2 text-base font-bold text-white">
+        <MapPin size={18} aria-hidden="true" />
+        {location || 'Location not listed'}
+      </p>
+      {mapsUrl && (
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:border-yellow-400 hover:bg-yellow-400/20"
+        >
+          <Navigation size={15} aria-hidden="true" />
+          Open in Maps
+        </a>
+      )}
+    </div>
+  )
+}
+
+function InlineBadge({ children, tone = 'slate' }) {
+  const tones = {
+    amber: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-200',
+    emerald: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200',
+    slate: 'border-slate-700 bg-slate-800 text-slate-300',
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${tones[tone] || tones.slate}`}>
+      {children}
+    </span>
   )
 }
 
@@ -531,6 +697,50 @@ function StatusBadge({ statusType }) {
       <ShieldCheck size={12} aria-hidden="true" />
       Unverified
     </span>
+  )
+}
+
+function ClaimValueCard({ primaryGc }) {
+  if (primaryGc) {
+    return (
+      <div className="rounded-2xl border border-emerald-900/50 bg-emerald-950/30 p-4">
+        <p className="text-sm font-bold text-emerald-200">General Contractor Claimed</p>
+        <p className="mt-2 text-sm leading-6 text-emerald-100">
+          This project has a verified lead contractor. Approved companies can post jobs and keep the project page current.
+        </p>
+      </div>
+    )
+  }
+
+  const benefits = [
+    'Post jobs tied to this project',
+    'Upload the hero image',
+    'Manage project information',
+    'Prepare subcontractor participation',
+    'Connect with trades workers',
+  ]
+
+  return (
+    <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/[0.07] p-4">
+      <p className="text-sm font-black text-white">Take control of this project page</p>
+      <p className="mt-2 text-sm leading-6 text-slate-300">
+        Claiming verifies your company as the General Contractor and unlocks the tools to start hiring.
+      </p>
+      <ul className="mt-3 space-y-2 text-sm text-slate-200">
+        {benefits.map((benefit) => (
+          <li key={benefit} className="flex gap-2">
+            <span className="text-yellow-300">-</span>
+            <span>{benefit}</span>
+          </li>
+        ))}
+      </ul>
+      <a
+        href="#claim-project"
+        className="mt-4 inline-flex rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black transition hover:bg-yellow-300"
+      >
+        Claim Project
+      </a>
+    </div>
   )
 }
 
@@ -574,10 +784,10 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
       setClaim(created)
       setNotes('')
       setTradeScope('')
-      setMessage({ type: 'success', text: 'Claim submitted. An admin will review it.' })
+      setMessage({ type: 'success', text: 'Claim submitted. Admin review comes next; approval unlocks project management and job posting.' })
       onClaimChanged?.()
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: 'error', text: err.message || 'Could not submit this claim. Please check your company profile and try again.' })
     } finally {
       setSubmitting(false)
     }
@@ -586,11 +796,11 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
   if (!user) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-        Project listed from public data.{' '}
+        Own or manage this project?{' '}
         <Link to="/signin" className="text-yellow-300 hover:underline">
           Sign in
         </Link>{' '}
-        as a General Contractor or Subcontractor to claim it.
+        with a company account to start a claim.
       </div>
     )
   }
@@ -598,7 +808,7 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
   if (!isCompany) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
-        Project listed from public data. Only General Contractor or Subcontractor accounts can claim a project.
+        Only company accounts can claim a project.
       </div>
     )
   }
@@ -610,7 +820,7 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
   if (claim?.status === 'pending') {
     return (
       <div className="rounded-2xl border border-yellow-900/60 bg-yellow-950/30 p-4 text-sm text-yellow-200">
-        Your claim ({claim.claim_type}) is pending admin review.
+        Your claim is pending admin review. Approval unlocks project management and job posting.
       </div>
     )
   }
@@ -618,7 +828,7 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
   if (claim?.status === 'approved') {
     return (
       <div className="rounded-2xl border border-emerald-900/60 bg-emerald-950/40 p-4 text-sm text-emerald-300">
-        You have an approved claim on this project.
+        Your company is approved on this project. You can manage the project page and post jobs from your company tools.
       </div>
     )
   }
@@ -628,7 +838,7 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
       <div>
         <p className="text-sm font-semibold text-white">Claim this project</p>
         <p className="mt-1 text-xs text-slate-500">
-          Project listed from public data. Submit a connection request and an admin will verify it.
+          Claim Project, Admin Review, Approval, Manage Project, Post Jobs.
         </p>
       </div>
       <div>
@@ -638,8 +848,8 @@ function ClaimPanel({ project, refreshKey, onClaimChanged }) {
           onChange={(e) => setClaimType(e.target.value)}
           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-yellow-400"
         >
-          <option value="gc">General Contractor</option>
-          <option value="sc">Subcontractor</option>
+          <option value="gc">General Contractor (project lead)</option>
+          <option value="sc">Subcontractor (request participation)</option>
         </select>
       </div>
       {claimType === 'sc' && (
@@ -763,20 +973,21 @@ export default function ProjectDetailPage() {
 
   const displayedProject = activeProject || project
   const publicLocation = getContractorDisplayLocation(displayedProject)
+  const isApprovedPrimaryGc =
+    normalizeRole(authRole) === 'gc' &&
+    myClaim?.status === 'approved' &&
+    myClaim?.company_role === 'gc' &&
+    myClaim?.is_primary_gc !== false
   const canEditLocation =
     normalizeRole(authRole) === 'admin' ||
-    (myClaim?.status === 'approved' && ['gc', 'sc'].includes(normalizeRole(authRole)))
+    isApprovedPrimaryGc
   const isAdmin = normalizeRole(authRole) === 'admin'
   const canManageImages =
     isAdmin ||
-    (
-      normalizeRole(authRole) === 'gc' &&
-      myClaim?.status === 'approved' &&
-      myClaim?.company_role === 'gc' &&
-      myClaim?.is_primary_gc !== false
-    )
+    isApprovedPrimaryGc
   const projectImages = displayedProject._images || []
   const primaryImage = displayedProject._primaryImage || projectImages.find((image) => image.is_primary) || projectImages[0] || null
+  const primaryGc = getPrimaryGeneralContractor(projectCompanies)
 
   const lat = Number(displayedProject.latitude)
   const lng = Number(displayedProject.longitude)
@@ -854,20 +1065,34 @@ export default function ProjectDetailPage() {
         structuredData={projectStructuredData}
       />
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-300">
-              <MapPin size={16} aria-hidden="true" />
-              {publicLocation || 'Location not listed'}
-            </p>
-            <h1 className="mt-2 text-3xl font-black leading-tight text-white sm:text-4xl">
-              {displayedProject.project_name || 'Project details'}
-            </h1>
-          </div>
-          <StatusBadge statusType={displayedProject.project_status_type || 'unverified'} />
-        </div>
-      </div>
+      <ProjectHero
+        project={displayedProject}
+        imageUrl={projectImage}
+        location={publicLocation || metaLocation}
+        primaryGc={primaryGc}
+        isHiring={isHiring}
+      />
+
+      {canManageImages && (
+        <DetailSection title="Hero Image" icon={FileText}>
+          <ProjectImageManager
+            projectId={displayedProject.id}
+            projectName={displayedProject.project_name}
+            companyId={myClaim?.company_profile_id || null}
+            userId={user?.id}
+            canManage={canManageImages}
+            initialImages={projectImages}
+            variant="hero"
+            onImagesChanged={(images) => {
+              setActiveProject((current) => ({
+                ...(current || displayedProject),
+                _images: images,
+                _primaryImage: images.find((image) => image.is_primary) || images[0] || null,
+              }))
+            }}
+          />
+        </DetailSection>
+      )}
 
       <section id="project-open-jobs" className="scroll-mt-24 rounded-3xl border border-yellow-400/30 bg-slate-900 p-5 shadow-lg shadow-yellow-400/5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -888,8 +1113,8 @@ export default function ProjectDetailPage() {
             {jobs[0] ? (
               <ApplyButton jobPostId={jobs[0].id} />
             ) : (
-              <span className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-bold text-slate-400">
-                Apply Now
+              <span className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-bold text-slate-400 sm:w-auto">
+                No jobs to apply for yet
               </span>
             )}
           </div>
@@ -901,10 +1126,10 @@ export default function ProjectDetailPage() {
         {jobs.length > 0 && (
           <div className="mt-4 space-y-3">
             {jobs.map((job) => (
-              <JobCard key={job.id} job={job}>
+              <JobCard key={job.id} job={job} location={publicLocation || metaLocation}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                   <ApplyButton jobPostId={job.id} />
-                  <SaveJobButton jobPostId={job.id} />
+                  {launchFlags.SHOW_SAVED_JOBS && <SaveJobButton jobPostId={job.id} />}
                 </div>
               </JobCard>
             ))}
@@ -912,114 +1137,48 @@ export default function ProjectDetailPage() {
         )}
       </section>
 
-      {(projectImages.length > 0 || canManageImages) && (
-        <DetailSection title="Jobsite Photos" icon={ImageIcon}>
-          <ProjectImageManager
-            projectId={displayedProject.id}
-            projectName={displayedProject.project_name}
-            companyId={myClaim?.company_profile_id || null}
-            userId={user?.id}
-            canManage={canManageImages}
-            initialImages={projectImages}
-            onImagesChanged={(images) => {
-              setActiveProject((current) => ({
-                ...(current || displayedProject),
-                _images: images,
-                _primaryImage: images.find((image) => image.is_primary) || images[0] || null,
-              }))
-            }}
-          />
-        </DetailSection>
-      )}
-
-      {projectImages.length === 0 && !canManageImages && normalizeRole(authRole) === 'gc' && (
-        <DetailSection title="Jobsite Photos" icon={ImageIcon}>
-          <div className="rounded-2xl border border-slate-800 bg-black/25 p-4 text-sm text-slate-400">
-            Project photos are available once your company is approved as the primary General Contractor on a jobsite.
-          </div>
-        </DetailSection>
-      )}
-
-      <DetailSection title="Project Information" icon={FileText}>
-        <ProjectOverview
-          project={displayedProject}
-          jobs={jobs}
-          jobsLoading={jobsLoading}
-          companies={projectCompanies}
-        />
-      </DetailSection>
-
-      <DetailSection title="Primary General Contractor" icon={BriefcaseBusiness}>
-        <PrimaryGeneralContractor
-          companies={projectCompanies}
-          jobs={jobs}
-          loading={companiesLoading}
-          error={companiesError}
-        />
-      </DetailSection>
-
-      <DetailSection title="Subcontractors" icon={UsersRound}>
-        <SubcontractorList
-          companies={projectCompanies}
-          jobs={jobs}
-          loading={companiesLoading}
-          error={companiesError}
-        />
-      </DetailSection>
-
-      <DetailSection title="Location" icon={MapPin}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Jobsite Location" value={publicLocation || 'Location not listed'} />
-          <Field label="City" value={displayedProject.city} />
-          <Field label="Province" value={displayedProject.province} />
-          <Field label="Address" value={displayedProject.display_address || displayedProject.address} />
-        </div>
-        {mapsUrl && (
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:border-yellow-400 hover:bg-yellow-400/20"
-          >
-            <Navigation size={15} aria-hidden="true" />
-            Open in Maps
-          </a>
-        )}
-      </DetailSection>
-
-      <DetailSection title="Jobsite Access" icon={MapPin}>
-        <JobsiteAccessDetails
-          project={displayedProject}
-          canEdit={canEditLocation}
-          onSaved={setActiveProject}
-        />
-      </DetailSection>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <DetailSection title="Original Listing" icon={Navigation}>
-          {project.source_url ? (
-            <a
-              href={project.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-yellow-300 hover:text-yellow-200 hover:underline"
-            >
-              View original listing
-              <Navigation size={14} aria-hidden="true" />
-            </a>
-          ) : (
-            <p className="text-sm text-slate-400">Not available yet</p>
-          )}
-        </DetailSection>
-
-        <aside className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+      <aside id="claim-project" className="scroll-mt-24 rounded-3xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <ClaimValueCard primaryGc={primaryGc} />
           <ClaimPanel
             project={project}
             refreshKey={claimRefresh}
             onClaimChanged={() => setClaimRefresh((n) => n + 1)}
           />
-        </aside>
-      </div>
+        </div>
+      </aside>
+
+      <DetailSection title="Quick Info" icon={FileText}>
+        <ProjectOverview
+          project={displayedProject}
+          jobs={jobs}
+          jobsLoading={jobsLoading}
+        />
+      </DetailSection>
+
+      <DetailSection title="Project Team" icon={UsersRound}>
+        <ProjectTeamList
+          project={displayedProject}
+          companies={projectCompanies}
+          loading={companiesLoading}
+          error={companiesError}
+        />
+      </DetailSection>
+
+      <DetailSection title="Hiring Companies" icon={BriefcaseBusiness}>
+        <HiringCompaniesList
+          jobs={jobs}
+          companies={projectCompanies}
+        />
+      </DetailSection>
+
+      <DetailSection title="Location" icon={MapPin}>
+        <ProjectLocation
+          location={publicLocation || metaLocation}
+          mapsUrl={mapsUrl}
+        />
+      </DetailSection>
+
     </div>
   )
 }

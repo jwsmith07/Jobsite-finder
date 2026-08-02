@@ -65,6 +65,7 @@ export default function ProjectListPanel({ projects = [] }) {
           const isHiring = projectHasHiringPulse(project)
           const totalOpenings = Number(project._openRolesCount) || 0
           const claimed = !!project.claimed_by_company_id
+          const verified = project.project_status_type === 'verified' || project.is_verified
           const location = getContractorDisplayLocation(project) || 'Location not listed'
 
           return (
@@ -94,10 +95,20 @@ export default function ProjectListPanel({ projects = [] }) {
                 <StatusPill tone={claimed ? 'emerald' : 'slate'} icon={claimed ? CheckCircle2 : Circle}>
                   {claimed ? 'Claimed' : 'Unclaimed'}
                 </StatusPill>
+                {verified && (
+                  <StatusPill tone="emerald" icon={CheckCircle2}>
+                    Verified
+                  </StatusPill>
+                )}
                 <StatusPill tone={isHiring ? 'amber' : 'slate'} icon={HardHat}>
                   {openingLabel(totalOpenings)}
                 </StatusPill>
               </div>
+              {isHiring && (
+                <p className="relative z-10 mt-2 text-xs font-semibold text-amber-200">
+                  Open this project to view jobs and apply.
+                </p>
+              )}
 
               <span
                 aria-hidden="true"

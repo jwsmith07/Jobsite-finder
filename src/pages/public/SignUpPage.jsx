@@ -16,19 +16,27 @@ const ROLES = [
   {
     id: 'sc',
     label: 'Subcontractor',
-    description: 'Find General Contractor projects, submit for work, and grow your crew.',
+    description: 'Request participation on active projects, post roles, and grow your crew.',
     icon: <Users className="w-7 h-7" />,
   },
   {
     id: 'gc',
     label: 'General Contractor',
-    description: 'Post jobsites, hire trade workers, and manage your projects.',
+    description: 'Claim projects, control project pages, post jobs, and review applicants.',
     icon: <Building2 className="w-7 h-7" />,
   },
 ]
 
 const inputCls =
   'w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-amber-400 placeholder:text-slate-500'
+
+function friendlySignUpError(message) {
+  const text = String(message || '').toLowerCase()
+  if (text.includes('already registered') || text.includes('already exists')) return 'An account already exists for that email. Try signing in instead.'
+  if (text.includes('password')) return 'Please use a password with at least 6 characters.'
+  if (text.includes('rate limit')) return 'Too many attempts. Please wait a minute and try again.'
+  return message || 'Could not create your account. Please try again.'
+}
 
 export default function SignUpPage() {
   const [role, setRole] = useState(null)
@@ -62,11 +70,13 @@ export default function SignUpPage() {
     })
     setLoading(false)
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({ type: 'error', text: friendlySignUpError(error.message) })
     } else {
       setMessage({
         type: 'success',
-        text: 'Account created. Check your email to confirm your address.',
+        text: role === 'worker'
+          ? 'Account created. Check your email, then complete your worker profile and start applying.'
+          : 'Account created. Check your email, then complete your company profile so you can claim projects and post jobs.',
       })
     }
   }
@@ -80,7 +90,7 @@ export default function SignUpPage() {
     })
     setLoading(false)
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({ type: 'error', text: friendlySignUpError(error.message) })
     }
   }
 
@@ -91,7 +101,7 @@ export default function SignUpPage() {
           <Logo size="auth" />
         </div>
         <h1 className="text-2xl font-bold mb-1">Get started</h1>
-        <p className="text-sm text-slate-400 mb-6">Choose your account type to continue.</p>
+        <p className="text-sm text-slate-400 mb-6">Choose the path that matches how you will use Jobsite Finder.</p>
         <div className="flex flex-col gap-3">
           {ROLES.map((r) => (
             <button
@@ -138,6 +148,11 @@ export default function SignUpPage() {
           {role === 'worker' ? 'Create your worker profile' : 'Create your company account'}
         </h1>
         <p className="mt-1 text-sm text-slate-400">{selected?.description}</p>
+        {role !== 'worker' && (
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            After sign up: create company profile, claim or request a project connection, wait for approval, then post jobs.
+          </p>
+        )}
       </div>
 
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">

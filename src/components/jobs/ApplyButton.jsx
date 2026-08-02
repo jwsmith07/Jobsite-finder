@@ -4,6 +4,14 @@ import { useAuth } from '../../hooks/useAuth'
 import { applyToJob, getExistingApplicationForWorker, getWorkerForUser } from '../../services/applicationsService'
 import { normalizeRole } from '../../lib/utils'
 
+function friendlyApplyError(message) {
+  const text = String(message || '').toLowerCase()
+  if (text.includes('duplicate') || text.includes('already')) return 'You have already applied to this job.'
+  if (text.includes('resume')) return 'Please upload a resume on your worker profile before applying.'
+  if (text.includes('permission') || text.includes('unauthorized')) return 'Please sign in with a worker account to apply.'
+  return message || 'Could not submit your application. Please try again.'
+}
+
 export default function ApplyButton({ jobPostId }) {
   const { user, profile } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -81,7 +89,7 @@ export default function ApplyButton({ jobPostId }) {
     return (
       <Link
         to="/signin"
-        className="inline-block rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300 sm:w-auto"
       >
         Sign in to apply
       </Link>
@@ -95,7 +103,7 @@ export default function ApplyButton({ jobPostId }) {
       <button
         type="button"
         disabled
-        className="inline-block rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-400 cursor-not-allowed"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-400 cursor-not-allowed sm:w-auto"
       >
         Only worker accounts can apply
       </button>
@@ -107,7 +115,7 @@ export default function ApplyButton({ jobPostId }) {
       <button
         type="button"
         disabled
-        className="inline-block rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-400"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-400 sm:w-auto"
       >
         Loading…
       </button>
@@ -120,7 +128,7 @@ export default function ApplyButton({ jobPostId }) {
         <button
           type="button"
           disabled
-          className="inline-block rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 cursor-default"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 cursor-default sm:w-auto"
         >
           Applied
         </button>
@@ -133,7 +141,7 @@ export default function ApplyButton({ jobPostId }) {
     return (
       <Link
         to="/worker/profile"
-        className="inline-block rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 hover:border-amber-500/60 hover:bg-amber-500/20"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 hover:border-amber-500/60 hover:bg-amber-500/20 sm:w-auto"
       >
         Upload resume before applying
       </Link>
@@ -148,7 +156,7 @@ export default function ApplyButton({ jobPostId }) {
       setHasApplied(true)
     } catch (err) {
       console.error('ApplyButton: Apply error:', err.message)
-      setErrorMessage(err.message || 'Could not apply to this job right now. Please try again later.')
+      setErrorMessage(friendlyApplyError(err.message))
     } finally {
       setLoading(false)
     }
@@ -160,7 +168,7 @@ export default function ApplyButton({ jobPostId }) {
         type="button"
         onClick={handleApply}
         disabled={loading}
-        className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300 disabled:opacity-60"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300 disabled:opacity-60 sm:w-auto"
       >
         {loading ? 'Applying...' : 'Apply with my profile'}
       </button>

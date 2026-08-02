@@ -40,6 +40,12 @@ export default function CompanyProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="rounded-2xl border border-yellow-400/25 bg-yellow-400/[0.06] p-4">
+        <p className="text-sm font-bold text-white">Complete your company profile first</p>
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          Admins use this to review project claims. Workers use it to recognize who is hiring.
+        </p>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className={labelCls}>Company name</label>
@@ -67,7 +73,7 @@ export default function CompanyProfileForm({
 
       <details className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
         <summary className="cursor-pointer text-sm font-bold text-white">
-          Additional Information
+          Trust details
         </summary>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">

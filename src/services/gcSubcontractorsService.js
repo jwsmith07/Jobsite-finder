@@ -11,6 +11,16 @@ const ASSIGNMENT_FIELDS = `
 `
 const CLAIM_FIELDS = 'id, project_id, company_profile_id, status, company_role, claim_type, is_primary_gc'
 const LEGACY_CLAIM_FIELDS = 'id, project_id, company_profile_id, status, claim_type'
+const REQUEST_FIELDS = `
+  id, project_id, company_profile_id, status, company_role, claim_type, trade_scope, notes, created_at,
+  company:company_profiles(id, company_name, company_type, email, phone, website, trades_hired, verified),
+  project:projects(id, project_name, city, province, display_address, address)
+`
+const INVITATION_FIELDS = `
+  id, gc_company_id, subcontractor_company_id, jobsite_id, status, created_at,
+  gc_company:company_profiles!gc_subcontractor_assignments_gc_company_id_fkey(id, company_name, company_type, verified),
+  jobsite:jobsites(id, project_id, project:projects(id, project_name, city, province, display_address, address))
+`
 
 function missingRelation(error) {
   const message = String(error?.message || '')
@@ -91,6 +101,33 @@ function normalizeAssignment(row) {
     created_at: row.created_at || null,
     jobsite: normalizeJobsite(row.jobsite),
     subcontractor: normalizeCompany(row.subcontractor),
+  }
+}
+
+function normalizeParticipationRequest(row) {
+  return {
+    id: row.id,
+    project_id: row.project_id,
+    company_profile_id: row.company_profile_id,
+    status: row.status || 'pending',
+    trade_scope: row.trade_scope || '',
+    notes: row.notes || '',
+    created_at: row.created_at || null,
+    company: normalizeCompany(row.company),
+    project: row.project || null,
+  }
+}
+
+function normalizeInvitation(row) {
+  return {
+    id: row.id,
+    gc_company_id: row.gc_company_id,
+    subcontractor_company_id: row.subcontractor_company_id,
+    jobsite_id: row.jobsite_id,
+    status: row.status || 'pending',
+    created_at: row.created_at || null,
+    gcCompany: normalizeCompany(row.gc_company),
+    jobsite: normalizeJobsite(row.jobsite),
   }
 }
 
@@ -255,7 +292,7 @@ export async function getGcSubcontractorPageData(userId) {
 
   const projectIds = gcClaims.map((claim) => claim.project_id).filter(Boolean)
   if (projectIds.length === 0) {
-    return { gcCompany, jobsites: [], assignments: [], availableSubcontractors: [] }
+    return { gcCompany, jobsites: [], assignments: [], availableSubcontractors: [], pendingRequests: [] }
   }
 
   const scClaims = await getApprovedSubcontractorClaims(projectIds, gcCompany.id)
@@ -299,7 +336,7 @@ export async function getGcSubcontractorPageData(userId) {
   }
   const jobsiteIds = jobsites.map((jobsite) => jobsite.id).filter(Boolean)
   if (jobsiteIds.length === 0) {
-    return { gcCompany, jobsites: [], assignments: [], availableSubcontractors }
+    return { gcCompany, jobsites: [], assignments: [], availableSubcontractors, pendingRequests: [] }
   }
 
   let assignments = []
@@ -360,6 +397,8 @@ export async function getGcSubcontractorPageData(userId) {
       }
     })
 
+  const pendingRequests = await getPendingSubcontractorRequestsForProjects(projectIds, gcCompany.id)
+
   return {
     gcCompany,
     jobsites,
@@ -368,7 +407,87 @@ export async function getGcSubcontractorPageData(userId) {
       subcontractor: companiesById.get(assignment.subcontractor_company_id) || assignment.subcontractor,
     })).concat(virtualAssignments),
     availableSubcontractors,
+    pendingRequests,
   }
+}
+
+async function getPendingSubcontractorRequestsForProjects(projectIds, gcCompanyId) {
+  if (!projectIds?.length) return []
+  let result = await supabase
+    .from('project_claims')
+    .select(REQUEST_FIELDS)
+    .in('project_id', projectIds)
+    .eq('status', 'pending')
+    .neq('company_profile_id', gcCompanyId)
+    .order('created_at', { ascending: false })
+    .range(0, 9999)
+
+  if (missingProjectTeamColumn(result.error)) {
+    result = await supabase
+      .from('project_claims')
+      .select('id, project_id, company_profile_id, status, claim_type, notes, created_at, company:company_profiles(id, company_name, company_type), project:projects(id, project_name, city, province, address)')
+      .in('project_id', projectIds)
+      .eq('status', 'pending')
+      .neq('company_profile_id', gcCompanyId)
+      .order('created_at', { ascending: false })
+      .range(0, 9999)
+  }
+
+  if (result.error) throw new Error(`Failed to load participation requests: ${result.error.message}`)
+  return (result.data ?? [])
+    .filter((claim) => toCompanyRole(claim) === 'subcontractor')
+    .map(normalizeParticipationRequest)
+}
+
+export async function updateSubcontractorParticipationRequest(userId, claimId, status) {
+  if (!userId) throw new Error('No authenticated user.')
+  if (!['approved', 'rejected'].includes(status)) throw new Error('Invalid participation status.')
+  const { data, error } = await supabase
+    .from('project_claims')
+    .update({
+      status,
+      approved_at: status === 'approved' ? new Date().toISOString() : null,
+    })
+    .eq('id', claimId)
+    .select(REQUEST_FIELDS)
+    .maybeSingle()
+
+  if (error) throw new Error(`Failed to update participation request: ${error.message}`)
+  return data ? normalizeParticipationRequest(data) : null
+}
+
+export async function getSubcontractorInvitationsForUser(userId) {
+  if (!userId) throw new Error('No authenticated user.')
+  const company = await getCompanyForUser(userId)
+  const { data, error } = await supabase
+    .from('gc_subcontractor_assignments')
+    .select(INVITATION_FIELDS)
+    .eq('subcontractor_company_id', company.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .range(0, 9999)
+
+  if (error) {
+    if (missingRelation(error)) return []
+    throw new Error(`Failed to load project invitations: ${error.message}`)
+  }
+  return (data ?? []).map(normalizeInvitation)
+}
+
+export async function updateSubcontractorInvitation(userId, assignmentId, decision) {
+  if (!userId) throw new Error('No authenticated user.')
+  if (!['active', 'removed'].includes(decision)) throw new Error('Invalid invitation decision.')
+  const company = await getCompanyForUser(userId)
+  const { data, error } = await supabase
+    .from('gc_subcontractor_assignments')
+    .update({ status: decision })
+    .eq('id', assignmentId)
+    .eq('subcontractor_company_id', company.id)
+    .select(INVITATION_FIELDS)
+    .maybeSingle()
+
+  if (error) throw new Error(`Failed to update invitation: ${error.message}`)
+  return data ? normalizeInvitation(data) : null
 }
 
 export async function createGcSubcontractorAssignment(userId, values) {

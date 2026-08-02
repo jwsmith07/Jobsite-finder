@@ -32,21 +32,27 @@ function QuickFilter({ checked, onChange, children }) {
 export default function MapFilters({
   search,
   onSearchChange,
+  province,
+  onProvinceChange,
+  provinces = [],
   stage,
   onStageChange,
+  stages = [],
+  trade,
+  onTradeChange,
+  trades = [],
   hiringOnly = false,
   onHiringOnlyChange,
-  claimedOnly = false,
-  onClaimedOnlyChange,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = useMemo(() => {
     let count = 0
-    if (stage === 'active' || stage === 'planning') count += 1
+    if (province && province !== 'all') count += 1
+    if (stage && stage !== 'all') count += 1
+    if (trade && trade !== 'all') count += 1
     if (hiringOnly) count += 1
-    if (claimedOnly) count += 1
     return count
-  }, [claimedOnly, hiringOnly, stage])
+  }, [hiringOnly, province, stage, trade])
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-2 shadow-lg shadow-black/30 sm:p-2.5">
@@ -61,7 +67,7 @@ export default function MapFilters({
             type="search"
             value={search}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Search jobsites..."
+            placeholder="Search city, trade, contractor..."
             className={`${baseControl} pl-9`}
             aria-label="Search jobsites"
           />
@@ -88,26 +94,40 @@ export default function MapFilters({
 
       <div
         id="jobsites-simple-filters"
-        className={`${filtersOpen ? 'flex' : 'hidden'} mt-2 flex-wrap gap-1.5 pb-0.5`}
+        className={`${filtersOpen ? 'grid' : 'hidden'} mt-2 gap-2 pb-0.5 sm:grid-cols-2`}
       >
-        <QuickFilter
-          checked={stage === 'active'}
-          onChange={(checked) => onStageChange?.(checked ? 'active' : 'all')}
-        >
-          Active
-        </QuickFilter>
-        <QuickFilter
-          checked={stage === 'planning'}
-          onChange={(checked) => onStageChange?.(checked ? 'planning' : 'all')}
-        >
-          Upcoming
-        </QuickFilter>
-        <QuickFilter checked={hiringOnly} onChange={onHiringOnlyChange}>
-          Hiring
-        </QuickFilter>
-        <QuickFilter checked={claimedOnly} onChange={onClaimedOnlyChange}>
-          Claimed
-        </QuickFilter>
+        <div className="sm:col-span-2">
+          <QuickFilter checked={hiringOnly} onChange={onHiringOnlyChange}>
+            Hiring Now
+          </QuickFilter>
+        </div>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Province</span>
+          <select value={province} onChange={(e) => onProvinceChange?.(e.target.value)} className={baseControl}>
+            <option value="all">All provinces</option>
+            {provinces.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Project Stage</span>
+          <select value={stage} onChange={(e) => onStageChange?.(e.target.value)} className={baseControl}>
+            <option value="all">All stages</option>
+            {stages.map((option) => (
+              <option key={option.value || option.key} value={option.value || option.key}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Trade</span>
+          <select value={trade} onChange={(e) => onTradeChange?.(e.target.value)} className={baseControl}>
+            <option value="all">All trades</option>
+            {trades.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </label>
       </div>
     </div>
   )

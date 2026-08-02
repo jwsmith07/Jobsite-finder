@@ -151,21 +151,26 @@ function svgDataUrl(svg) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
 }
 
-function buildJobsitePinSvg(color, sourceType) {
+function buildJobsitePinSvg(color, project) {
+  const sourceType = project?.source_type
   const isContractorCreated = sourceType === 'contractor_created'
+  const isHiring = projectHasHiringPulse(project) || getProjectOpenRolesCount(project) > 0
+  const claimed = !!project?.claimed_by_company_id
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+      ${isHiring ? '<circle cx="16" cy="16" r="14" fill="rgba(251,191,36,0.20)" stroke="#facc15" stroke-width="2"/>' : ''}
       <path d="M14 1 C 6.8 1 1 6.8 1 14 C 1 23.5 14 35 14 35 C 14 35 27 23.5 27 14 C 27 6.8 21.2 1 14 1 Z"
-        fill="${color}" stroke="#0f172a" stroke-width="1.5"/>
-      <circle cx="14" cy="14" r="${isContractorCreated ? '5.8' : '4.5'}" fill="${isContractorCreated ? '#2563eb' : '#0f172a'}" stroke="#0f172a" stroke-width="${isContractorCreated ? '1.5' : '0'}"/>
+        transform="translate(2 2)" fill="${color}" stroke="#0f172a" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="${isContractorCreated || claimed ? '5.8' : '4.5'}" fill="${isContractorCreated || claimed ? '#2563eb' : '#0f172a'}" stroke="#0f172a" stroke-width="${isContractorCreated || claimed ? '1.5' : '0'}"/>
+      ${isHiring ? '<circle cx="24" cy="8" r="4.2" fill="#facc15" stroke="#0f172a" stroke-width="1.5"/>' : ''}
     </svg>`
 }
 
-function buildJobsiteMarkerIcon(color, sourceType) {
+function buildJobsiteMarkerIcon(color, project) {
   return {
-    url: svgDataUrl(buildJobsitePinSvg(color, sourceType)),
-    scaledSize: new google.maps.Size(28, 36),
-    anchor: new google.maps.Point(14, 36),
+    url: svgDataUrl(buildJobsitePinSvg(color, project)),
+    scaledSize: new google.maps.Size(32, 40),
+    anchor: new google.maps.Point(16, 38),
   }
 }
 
@@ -288,6 +293,7 @@ function ProjectMapPopup({
   const openRolesCount = getProjectOpenRolesCount(project)
   const isHiring = projectHasHiringPulse(project)
   const claimed = !!project.claimed_by_company_id
+  const verified = project.project_status_type === 'verified' || project.is_verified
   const location = getContractorDisplayLocation(project) || 'Location not listed'
   const primaryImage = project._primaryImage || (project.primary_image_url ? {
     image_url: project.primary_image_url,
@@ -342,6 +348,11 @@ function ProjectMapPopup({
             }`}>
               {claimed ? 'Claimed' : 'Unclaimed'}
             </span>
+            {verified && (
+              <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-200">
+                Verified
+              </span>
+            )}
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${
               isHiring
                 ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
@@ -355,7 +366,7 @@ function ProjectMapPopup({
             to={`/projects/${project.id}`}
             className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-yellow-200/60 bg-yellow-400 px-3 py-2 text-xs font-black text-slate-950 shadow-[0_12px_24px_rgba(0,0,0,0.45)] transition hover:bg-yellow-300"
           >
-            View Project
+            {isHiring ? 'View Jobs & Apply' : 'View Project'}
           </Link>
         </div>
       </div>
@@ -755,7 +766,7 @@ export default function ProjectMap({
         // project's stage), swap the pin content in place so the color
         // stays correct without rebuilding the marker.
         if (prev.stageKey !== p._stageKey) {
-          prev.marker.setIcon(buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p.source_type))
+          prev.marker.setIcon(buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p))
           prev.stageKey = p._stageKey
         }
         continue
@@ -763,7 +774,7 @@ export default function ProjectMap({
 
       const marker = new google.maps.Marker({
         position: { lat: p._lat, lng: p._lng },
-        icon: buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p.source_type),
+        icon: buildJobsiteMarkerIcon(pinColorOverride || getMapPinColor(p), p),
         clickable: interactive,
       })
       const projectId = p.id

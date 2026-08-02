@@ -50,9 +50,9 @@ export default function GCCompanyPage() {
         company_type: 'gc',
       })
       setInitial(saved)
-      setMessage({ type: 'success', text: 'Saved successfully' })
+      setMessage({ type: 'success', text: 'Company profile saved. Next: find your project, submit a claim, then post jobs after approval.' })
     } catch (err) {
-      setMessage({ type: 'error', text: err.message })
+      setMessage({ type: 'error', text: err.message || 'Could not save your company profile. Please check the form and try again.' })
     } finally {
       setSaving(false)
     }
@@ -92,7 +92,7 @@ export default function GCCompanyPage() {
         </span>
         <h1 className="mt-3 text-2xl font-bold">Company profile</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Tell trade workers and subcontractors who you are and what you build.
+          Add the details admins use to review claims and workers use to trust your job posts.
         </p>
       </div>
 

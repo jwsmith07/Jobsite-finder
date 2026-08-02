@@ -22,6 +22,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/faq" className="text-xs text-slate-400 hover:text-slate-300">
+                  FAQ
+                </Link>
+              </li>
+              <li>
                 <Link to="/contact" className="text-xs text-slate-400 hover:text-slate-300">
                   Contact
                 </Link>
@@ -48,16 +53,8 @@ export default function Footer() {
 
         <div className="my-6 border-t border-slate-800" />
 
-        <div className="flex flex-col gap-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs text-slate-500">
           <p>© {new Date().getFullYear()} Jobsite Finder Technologies Inc. All rights reserved.</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            <Link to="/faq" className="hover:text-slate-300">FAQ</Link>
-            <Link to="/community-guidelines" className="hover:text-slate-300">Guidelines</Link>
-            <Link to="/accessibility" className="hover:text-slate-300">Accessibility</Link>
-            <Link to="/security" className="hover:text-slate-300">Security</Link>
-            <Link to="/cookies" className="hover:text-slate-300">Cookies</Link>
-            <Link to="/refund-policy" className="hover:text-slate-300">Refunds</Link>
-          </div>
         </div>
       </div>
     </footer>

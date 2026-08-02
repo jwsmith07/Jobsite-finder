@@ -17,6 +17,7 @@ import {
   getProfileCertifications,
   normalizeList,
 } from '../../lib/workerCredentials'
+import { launchFlags } from '../../config/launchMode'
 
 const EMPTY = {
   headline: '',
@@ -189,17 +190,21 @@ export default function WorkerProfileForm({ initialValues, onSubmit, loading, us
                 ))}
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Talent Discovery Visibility</label>
-              <select className={inputCls} value={values.talent_visibility || 'approved_gcs'} onChange={(e) => set('talent_visibility', e.target.value)}>
-                {TALENT_VISIBILITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
+            {launchFlags.SHOW_TALENT_POOL && (
+              <div>
+                <label className={labelCls}>Talent Discovery Visibility</label>
+                <select className={inputCls} value={values.talent_visibility || 'approved_gcs'} onChange={(e) => set('talent_visibility', e.target.value)}>
+                  {TALENT_VISIBILITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          <CheckboxGroup label="Certifications" options={CERTIFICATION_OPTIONS} values={values.certifications} onChange={(next) => set('certifications', next)} />
+          {launchFlags.SHOW_TALENT_POOL && (
+            <CheckboxGroup label="Certifications" options={CERTIFICATION_OPTIONS} values={values.certifications} onChange={(next) => set('certifications', next)} />
+          )}
           <CheckboxGroup label="Work Preferences" options={WORK_PREFERENCE_OPTIONS} values={values.work_preferences} onChange={(next) => set('work_preferences', next)} />
           <CheckboxGroup label="Preferred Work Regions" options={WORK_REGION_OPTIONS} values={values.preferred_regions} onChange={(next) => set('preferred_regions', next)} />
 

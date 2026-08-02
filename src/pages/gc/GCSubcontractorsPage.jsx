@@ -6,10 +6,11 @@ import {
   createGcSubcontractorAssignment,
   getGcSubcontractorPageData,
   removeGcSubcontractorAssignment,
+  updateSubcontractorParticipationRequest,
   updateGcSubcontractorAssignment,
 } from '../../services/gcSubcontractorsService'
 
-const STATUS_OPTIONS = ['active', 'pending', 'paused', 'removed']
+const STATUS_OPTIONS = ['pending', 'active', 'paused', 'removed']
 
 function matches(value, query) {
   return String(value || '').toLowerCase().includes(query)
@@ -20,6 +21,7 @@ export default function GCSubcontractorsPage() {
   const [jobsites, setJobsites] = useState([])
   const [assignments, setAssignments] = useState([])
   const [availableSubcontractors, setAvailableSubcontractors] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
@@ -33,7 +35,7 @@ export default function GCSubcontractorsPage() {
   const [form, setForm] = useState({
     jobsite_id: '',
     subcontractor_company_id: '',
-    status: 'active',
+    status: 'pending',
   })
 
   async function load() {
@@ -45,6 +47,7 @@ export default function GCSubcontractorsPage() {
       setJobsites(data.jobsites)
       setAssignments(data.assignments)
       setAvailableSubcontractors(data.availableSubcontractors)
+      setPendingRequests(data.pendingRequests || [])
       setForm((current) => ({
         ...current,
         jobsite_id: current.jobsite_id || data.jobsites[0]?.id || '',
@@ -95,7 +98,7 @@ export default function GCSubcontractorsPage() {
     setMessage(null)
     try {
       await createGcSubcontractorAssignment(user.id, form)
-      setMessage({ type: 'success', text: 'Subcontractor assigned to jobsite.' })
+      setMessage({ type: 'success', text: form.status === 'pending' ? 'Subcontractor invitation sent.' : 'Subcontractor added to project team.' })
       await load()
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
@@ -133,10 +136,29 @@ export default function GCSubcontractorsPage() {
     }
   }
 
+  async function handleRequestDecision(requestId, status) {
+    if (!user?.id) return
+    setBusyId(requestId)
+    setMessage(null)
+    try {
+      await updateSubcontractorParticipationRequest(user.id, requestId, status)
+      setPendingRequests((current) => current.filter((request) => request.id !== requestId))
+      setMessage({
+        type: 'success',
+        text: status === 'approved' ? 'Subcontractor participation approved.' : 'Subcontractor request declined.',
+      })
+      await load()
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <DashboardShell
-      title="My Subcontractors"
-      subtitle="Subcontractors assigned to your jobsites."
+      title="Project Team"
+      subtitle="Invite subcontractors, review participation requests, and manage project teams."
     >
       {message && (
         <p className={`rounded-2xl border p-4 text-sm ${
@@ -149,7 +171,49 @@ export default function GCSubcontractorsPage() {
       )}
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Assign to jobsite</h2>
+        <h2 className="text-lg font-semibold text-white">Pending participation requests</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Subcontractors requesting to join your approved projects.
+        </p>
+        {pendingRequests.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+            No requests yet. Subcontractor requests from project pages will appear here.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {pendingRequests.map((request) => (
+              <article key={request.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                <h3 className="font-semibold text-white">{request.company.company_name}</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  {request.project?.project_name || 'Project'} · {request.trade_scope || request.company.trades_hired || 'Trade not listed'}
+                </p>
+                {request.notes && <p className="mt-3 text-sm leading-6 text-slate-300">{request.notes}</p>}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDecision(request.id, 'approved')}
+                    disabled={busyId === request.id}
+                    className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300 disabled:opacity-60"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDecision(request.id, 'rejected')}
+                    disabled={busyId === request.id}
+                    className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-red-400/60 hover:text-red-300 disabled:opacity-60"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Invite subcontractor</h2>
         <form onSubmit={handleAssign} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
           <select
             value={form.jobsite_id}
@@ -186,7 +250,7 @@ export default function GCSubcontractorsPage() {
             disabled={busyId === 'assign' || jobsites.length === 0 || availableSubcontractors.length === 0}
             className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300 disabled:opacity-60"
           >
-            {busyId === 'assign' ? 'Assigning...' : 'Assign'}
+            {busyId === 'assign' ? 'Sending...' : form.status === 'pending' ? 'Send Invitation' : 'Add'}
           </button>
         </form>
         {availableSubcontractors.length === 0 && !loading && (
@@ -243,7 +307,7 @@ export default function GCSubcontractorsPage() {
 
       {!loading && !error && assignments.length === 0 && (
         <p className="rounded-3xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
-          No subcontractors assigned yet. Assign subcontractors to your jobsites as your project team grows.
+          No subcontractors connected yet. Invite subcontractors or approve participation requests as your project team grows.
         </p>
       )}
 

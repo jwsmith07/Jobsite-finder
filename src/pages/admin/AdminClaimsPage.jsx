@@ -331,7 +331,16 @@ export default function AdminClaimsPage() {
         })}
 
         {!loading && filtered.length === 0 && (
-          <p className="text-sm text-slate-400">No claims to show.</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="text-lg font-bold text-white">
+              {filter === 'pending' ? 'No pending claims' : 'No claims to show'}
+            </h2>
+            <p className="mt-2 text-sm text-slate-400">
+              {filter === 'pending'
+                ? 'New contractor claim requests will appear here for approval.'
+                : 'Try a different status filter to review claim history.'}
+            </p>
+          </div>
         )}
       </div>
     </DashboardShell>

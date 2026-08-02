@@ -7,6 +7,7 @@ import {
 } from '../../services/applicationsService'
 import GlobalCard, { CardHeader, CardContent, CardFooter } from '../../components/ui/GlobalCard'
 import GlobalButton from '../../components/ui/GlobalButton'
+import { launchFlags } from '../../config/launchMode'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { PageTitle, PageSubtitle, CardTitle, SmallText, Caption, Label } from '../../components/ui/Typography'
 import { normalizeTrade } from '../../lib/trades'
@@ -119,7 +120,13 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
         )}
         {!loading && !error && items.length === 0 && (
           <GlobalCard padding="md" className="text-center">
-            <p className="text-slate-400">No applicants yet.</p>
+            <h2 className="text-lg font-bold text-white">No applicants yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+              Applicants will appear here after workers apply to your open jobs. Keep your jobs active and easy to understand.
+            </p>
+            <Link to="/gc/jobs" className="mt-4 inline-block">
+              <GlobalButton size="sm">Review job posts</GlobalButton>
+            </Link>
           </GlobalCard>
         )}
 
@@ -199,7 +206,7 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
                         </GlobalButton>
                       </a>
                     )}
-                    {a.worker_profile_id && (
+                    {launchFlags.SHOW_PUBLIC_PROFILES && a.worker_profile_id && (
                       <Link to={`/worker/${a.worker_profile_id}`}>
                         <GlobalButton size="sm" variant="secondary">
                           Worker Profile

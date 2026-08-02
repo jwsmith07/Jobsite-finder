@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Bell, UserCircle } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
+import { launchFlags } from '../../config/launchMode'
 import HamburgerMenu from './HamburgerMenu'
 import NavigationDrawer from './NavigationDrawer'
 import Logo from '../common/Logo'
@@ -28,13 +29,15 @@ export default function AppHeader() {
           <Logo asLink size="header" className="justify-center" />
 
           <div className="flex items-center justify-end gap-2">
-            <Link
-              to="/notifications"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-100 transition hover:border-amber-400/60 hover:bg-slate-800"
-              aria-label="Notifications"
-            >
-              <Bell size={20} aria-hidden="true" />
-            </Link>
+            {launchFlags.SHOW_NOTIFICATIONS && (
+              <Link
+                to="/notifications"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-100 transition hover:border-amber-400/60 hover:bg-slate-800"
+                aria-label="Notifications"
+              >
+                <Bell size={20} aria-hidden="true" />
+              </Link>
+            )}
             {loading || !user ? (
               <Link
                 to="/signin"

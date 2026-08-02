@@ -27,6 +27,33 @@ const DEFAULT_FILTERS = {
   claimedOnly: false,
 }
 
+function buildProjectSearchText(project) {
+  return [
+    project.project_name,
+    project.city,
+    project.province,
+    getCanadianRegionLabel(normalizeCanadianRegion(project.province)),
+    project.region,
+    project.address,
+    project.display_address,
+    project.sector,
+    project.project_type,
+    project.stage,
+    project.general_contractor,
+    project.owner,
+    ...(project._openRoleTrades || []),
+    ...(project._openJobs || []).flatMap((job) => [
+      job.title,
+      job.trade,
+      job.companyName,
+      job.company?.company_name,
+    ]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
 const JOBSITES_MAP_PADDING = {
   top: 80,
   right: 24,
@@ -553,7 +580,10 @@ export default function JobsitesPage() {
   }, [])
 
   const publicProjects = useMemo(
-    () => projects.filter(isPublicProjectVisible),
+    () => projects.filter(isPublicProjectVisible).map((project) => ({
+      ...project,
+      _searchText: buildProjectSearchText(project),
+    })),
     [projects],
   )
 
@@ -624,9 +654,8 @@ export default function JobsitesPage() {
     const list = []
     for (const p of mapFiltered) {
       if (q) {
-        const name = (p.project_name || '').toLowerCase()
-        const city = (p.city || '').toLowerCase()
-        if (!name.includes(q) && !city.includes(q)) continue
+        const searchable = p._searchText || buildProjectSearchText(p)
+        if (!searchable.includes(q)) continue
       }
       let distanceKm = null
       if (hasUserLocation && p._hasValidCoords) {
@@ -647,6 +676,10 @@ export default function JobsitesPage() {
     [filtered],
   )
   const totalJobsitesCount = mappedCount
+  const hiringJobsitesCount = useMemo(
+    () => filtered.filter((p) => p._isHiringNow || (Number(p._openRolesCount) || 0) > 0).length,
+    [filtered],
+  )
 
   // Viewport-gated list: when "Limit to map view" is on and the map has
   // reported its bounds at least once, narrow the filtered list to
@@ -877,7 +910,7 @@ export default function JobsitesPage() {
       </button>
       {mobileDrawerOpen && (
         <div className="flex items-center justify-between gap-3 lg:hidden">
-          <p className="text-sm font-black text-white">View {totalJobsitesCount} Jobsites</p>
+          <p className="text-sm font-black text-white">{totalJobsitesCount} Jobsites</p>
           <button
             type="button"
             onClick={() => setMobileDrawerOpen(false)}
@@ -911,15 +944,16 @@ export default function JobsitesPage() {
           onMinValueChange={setMinValue}
           hiringOnly={hiringOnly}
           onHiringOnlyChange={setHiringOnly}
-          claimedOnly={claimedOnly}
-          onClaimedOnlyChange={setClaimedOnly}
           onClearAll={clearFilters}
           hasActiveFilters={hasActiveFilters}
         />
       </div>
-      <p className="px-1 text-xs font-semibold text-slate-400">
-        {totalJobsitesCount} Jobsites
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs font-semibold text-slate-400">
+        <span>{viewportActive ? viewportFiltered.length : totalJobsitesCount} shown</span>
+        <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-amber-200">
+          {hiringJobsitesCount} Hiring Now
+        </span>
+      </div>
 
       {/* Page heading kept visually subtle — provides semantic structure
           for screen readers / SEO without breaking the compact look. The
@@ -1007,6 +1041,28 @@ export default function JobsitesPage() {
           </div>
         )}
 
+        {!loading && !error && filtered.length > 0 && viewportFiltered.length === 0 && (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-700 bg-slate-950 p-8 text-center">
+            <span
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-500"
+              aria-hidden="true"
+            >
+              <Inbox size={20} />
+            </span>
+            <p className="text-base font-semibold text-white">No matching projects in this map view.</p>
+            <p className="-mt-2 text-sm text-slate-400">
+              Pan or zoom out, or show all {filtered.length} matching project{filtered.length === 1 ? '' : 's'}.
+            </p>
+            <button
+              type="button"
+              onClick={() => setLimitToMapView(false)}
+              className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-amber-300"
+            >
+              Show all results
+            </button>
+          </div>
+        )}
+
         {!loading && !error && selectedProject && (
           <div className="rounded-3xl border border-slate-800 bg-slate-950 p-5">
             <SelectedProjectPanel
@@ -1020,8 +1076,8 @@ export default function JobsitesPage() {
           </div>
         )}
 
-        {!loading && !error && !selectedProject && filtered.length > 0 && (
-          <ProjectListPanel projects={filtered} />
+        {!loading && !error && !selectedProject && viewportFiltered.length > 0 && (
+          <ProjectListPanel projects={viewportFiltered} />
         )}
       </div>
       </section>

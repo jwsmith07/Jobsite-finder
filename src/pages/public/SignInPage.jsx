@@ -5,6 +5,14 @@ import { getOAuthRedirectUrl } from '../../lib/env'
 import PasswordInput from '../../components/auth/PasswordInput'
 import Logo from '../../components/common/Logo'
 
+function friendlyAuthError(message) {
+  const text = String(message || '').toLowerCase()
+  if (text.includes('invalid login credentials')) return 'Email or password did not match. Please try again.'
+  if (text.includes('email not confirmed')) return 'Please confirm your email before signing in.'
+  if (text.includes('rate limit')) return 'Too many attempts. Please wait a minute and try again.'
+  return message || 'Could not sign in. Please try again.'
+}
+
 export default function SignInPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -19,7 +27,7 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({ type: 'error', text: friendlyAuthError(error.message) })
       return
     }
     setMessage({ type: 'success', text: 'Signed in successfully. Redirecting...' })
@@ -35,7 +43,7 @@ export default function SignInPage() {
     })
     setLoading(false)
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setMessage({ type: 'error', text: friendlyAuthError(error.message) })
     }
   }
 

@@ -10,8 +10,8 @@ import PageMeta from '../components/ui/PageMeta'
 import { defaultDescription, organizationSchema, staticRouteMeta, websiteSchema } from '../lib/seo'
 import { MapProviderProvider } from '../components/map/MapProviderContext'
 
-const maintenanceAllowedPrefixes = ['/under-construction', '/login', '/signin', '/admin', '/api']
-const devMaintenanceAllowedPrefixes = import.meta.env.DEV ? ['/jobsites', '/projects', '/maplibre-poc'] : []
+const maintenanceAllowedPrefixes = ['/', '/under-construction', '/jobsites', '/projects', '/login', '/signin', '/admin', '/api']
+const devMaintenanceAllowedPrefixes = import.meta.env.DEV ? ['/maplibre-poc'] : []
 
 function isMaintenanceAllowed(pathname) {
   return [...maintenanceAllowedPrefixes, ...devMaintenanceAllowedPrefixes].some(

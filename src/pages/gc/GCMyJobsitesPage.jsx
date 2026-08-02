@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BriefcaseBusiness, Camera, ExternalLink, FilePenLine, Plus, ShieldCheck, Users } from 'lucide-react'
+import { BriefcaseBusiness, ExternalLink, FilePenLine, ShieldCheck } from 'lucide-react'
 import DashboardShell from '../../components/layout/DashboardShell'
 import { useAuth } from '../../hooks/useAuth'
 import { formatDate } from '../../lib/utils'
@@ -55,25 +55,11 @@ function ProjectActions({ project, canEdit }) {
         View
       </Link>
       <Link
-        to="/gc/project-photos"
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-yellow-400/50"
-      >
-        <Camera size={15} aria-hidden="true" />
-        Photos
-      </Link>
-      <Link
         to="/gc/jobs"
         className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-yellow-400/50"
       >
         <BriefcaseBusiness size={15} aria-hidden="true" />
         Jobs
-      </Link>
-      <Link
-        to="/gc/subcontractors"
-        className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-100 hover:border-yellow-400/50"
-      >
-        <Users size={15} aria-hidden="true" />
-        Subcontractors
       </Link>
       {canEdit && (
         <Link
@@ -212,17 +198,8 @@ export default function GCMyJobsitesPage() {
 
   return (
     <DashboardShell
-      title="My Jobsites"
-      subtitle="Track contractor-created submissions and manage approved Primary GC jobsites."
-      actions={
-        <Link
-          to="/gc/jobsites/create"
-          className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
-        >
-          <Plus size={16} aria-hidden="true" />
-          Create Jobsite
-        </Link>
-      }
+      title="My Projects"
+      subtitle="Claim projects, post jobs, and review applicants for approved Primary GC jobsites."
     >
       {error && (
         <div className="rounded-2xl border border-red-900/60 bg-red-950/40 p-4 text-sm text-red-300">
@@ -232,11 +209,10 @@ export default function GCMyJobsitesPage() {
 
       {!error && (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <SummaryCard label="Approved Jobsites" value={data?.summary?.approvedCount || 0} />
             <SummaryCard label="Pending Review" value={data?.summary?.pendingCount || 0} />
             <SummaryCard label="Open Job Postings" value={data?.summary?.openJobCount || 0} />
-            <SummaryCard label="Project Photos" value={data?.summary?.photoCount || 0} />
           </section>
 
           {!hasProjects && (
@@ -244,14 +220,13 @@ export default function GCMyJobsitesPage() {
               <ShieldCheck size={24} className="text-yellow-300" aria-hidden="true" />
               <h2 className="mt-3 text-xl font-bold text-white">No approved jobsites yet.</h2>
               <p className="mt-2 text-sm text-slate-400">
-                Create a jobsite or claim an Alberta project to start managing photos, job postings, and subcontractors.
+                Claim a public project from the jobsites map to start posting jobs and reviewing applicants.
               </p>
               <Link
-                to="/gc/jobsites/create"
+                to="/jobsites"
                 className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-300"
               >
-                <Plus size={16} aria-hidden="true" />
-                Create Jobsite
+                View Jobsites Map
               </Link>
             </section>
           )}

@@ -107,11 +107,13 @@ export function useAuth() {
     }
   }, [])
 
-  // DB profiles.role is source of truth. Metadata may bootstrap ordinary
-  // onboarding routes, but never grant admin access if the profile read fails.
+  // DB profiles.role is source of truth. Metadata is a fallback so existing
+  // admin accounts do not get locked out if the profile read times out or RLS
+  // blocks the bootstrap lookup.
   const profileRole = normalizeRole(profile?.role)
+  const appMetadataRole = normalizeRole(user?.app_metadata?.role)
   const metadataRole = normalizeRole(user?.user_metadata?.role)
-  const role = profileRole || (metadataRole === 'admin' ? '' : metadataRole)
+  const role = profileRole || appMetadataRole || metadataRole
 
   return { user, session, profile, role, loading, profileLoading }
 }

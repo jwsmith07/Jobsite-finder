@@ -156,9 +156,16 @@ export default function ApplicationsPage() {
         )}
         {!loading && !error && filteredApps.length === 0 && (
           <GlobalCard padding="md" className="text-center">
-            <p className="text-slate-400">No {filter} applications.</p>
+            <h2 className="text-lg font-bold text-white">
+              {apps.length === 0 ? 'No applications submitted yet' : `No ${filter} applications`}
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+              {apps.length === 0
+                ? 'Explore the jobsites map, open a project with active jobs, and apply with your worker profile.'
+                : 'Try another status filter or keep exploring open jobs on the map.'}
+            </p>
             <Link to="/jobsites" className="mt-4 inline-block">
-              <GlobalButton size="sm">Find Jobsites</GlobalButton>
+              <GlobalButton size="sm">View Jobsites Map</GlobalButton>
             </Link>
           </GlobalCard>
         )}

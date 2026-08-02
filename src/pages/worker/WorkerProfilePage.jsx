@@ -19,6 +19,7 @@ import {
   getTalentVisibilityLabel,
   normalizeList,
 } from '../../lib/workerCredentials'
+import { launchFlags } from '../../config/launchMode'
 
 export default function WorkerProfilePage() {
   const { user, loading: authLoading } = useAuth()
@@ -302,7 +303,7 @@ function ProfileDisplay({ profile, userId, onEdit }) {
       </GlobalCard>
 
       <GlobalCard padding="md">
-        <CardHeader title="Certifications & Resume Status" />
+        <CardHeader title="Resume Status" />
         <CardContent className="mt-3 grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <Caption>Trade</Caption>
@@ -312,10 +313,12 @@ function ProfileDisplay({ profile, userId, onEdit }) {
             <Caption>Years Experience</Caption>
             <SmallText>{profile.experience_years ? `${profile.experience_years} years` : 'Not specified'}</SmallText>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
-            <Caption>Certifications</Caption>
-            <SmallText>{certifications.length ? certifications.join(', ') : 'Not specified'}</SmallText>
-          </div>
+          {launchFlags.SHOW_TALENT_POOL && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
+              <Caption>Certifications</Caption>
+              <SmallText>{certifications.length ? certifications.join(', ') : 'Not specified'}</SmallText>
+            </div>
+          )}
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <Caption>Resume</Caption>
             <SmallText>{profile.resume_url ? 'Uploaded' : 'Not uploaded'}</SmallText>
@@ -330,10 +333,12 @@ function ProfileDisplay({ profile, userId, onEdit }) {
             <Caption>Availability</Caption>
             <SmallText>{getAvailabilityLabel(profile.availability_status)}</SmallText>
           </div>
-          <div>
-            <Caption>Talent Discovery Visibility</Caption>
-            <SmallText>{getTalentVisibilityLabel(profile.talent_visibility)}</SmallText>
-          </div>
+          {launchFlags.SHOW_TALENT_POOL && (
+            <div>
+              <Caption>Talent Discovery Visibility</Caption>
+              <SmallText>{getTalentVisibilityLabel(profile.talent_visibility)}</SmallText>
+            </div>
+          )}
           <div>
             <Caption>Work Preferences</Caption>
             <div className="mt-2 flex flex-wrap gap-2">

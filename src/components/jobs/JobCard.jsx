@@ -1,7 +1,7 @@
 import { normalizeApprenticeshipLevel, normalizeTrade } from '../../lib/trades'
 import StatusBadge from '../ui/StatusBadge'
 
-export default function JobCard({ job, children }) {
+export default function JobCard({ job, location, children }) {
   if (!job) return null
 
   const trade = normalizeTrade(job.trade)
@@ -22,12 +22,15 @@ export default function JobCard({ job, children }) {
   const status = job.status || 'open'
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">{roleTitle}</h3>
           {companyName && (
             <p className="mt-1 text-sm font-semibold text-yellow-300">{companyName}</p>
+          )}
+          {location && (
+            <p className="mt-1 text-sm font-medium text-slate-300">{location}</p>
           )}
           {job.title && job.title !== roleTitle && (
             <p className="mt-1 text-sm text-slate-400">{job.title}</p>

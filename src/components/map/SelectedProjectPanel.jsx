@@ -44,6 +44,7 @@ export default function SelectedProjectPanel({ project, onClose }) {
   const isHiring = projectHasHiringPulse(project)
   const totalOpenings = Number(project._openRolesCount) || 0
   const claimed = !!project.claimed_by_company_id
+  const verified = project.project_status_type === 'verified' || project.is_verified
   const primaryImage = project._primaryImage
   const primaryGc =
     project._openJobs?.[0]?.companyName ||
@@ -86,6 +87,11 @@ export default function SelectedProjectPanel({ project, onClose }) {
         <StatusPill tone={claimed ? 'emerald' : 'slate'} icon={claimed ? CheckCircle2 : Circle}>
           {claimed ? 'Claimed' : 'Unclaimed'}
         </StatusPill>
+        {verified && (
+          <StatusPill tone="emerald" icon={CheckCircle2}>
+            Verified
+          </StatusPill>
+        )}
         <StatusPill tone={isHiring ? 'amber' : 'slate'} icon={HardHat}>
           {hiringLabel(totalOpenings, isHiring)}
         </StatusPill>
@@ -102,7 +108,7 @@ export default function SelectedProjectPanel({ project, onClose }) {
         to={`/projects/${project.id}`}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-black text-black transition hover:bg-yellow-300"
       >
-        View Project
+        {isHiring ? 'View Jobs & Apply' : 'View Project'}
         <ArrowRight size={15} aria-hidden="true" />
       </Link>
     </div>
