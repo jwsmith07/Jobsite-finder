@@ -430,25 +430,6 @@ export default function UnderConstructionPage() {
           </div>
         </section>
 
-        <section className="bg-slate-950 px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl rounded-lg border border-slate-800 bg-slate-900 p-8 text-center shadow-2xl shadow-black/20">
-            <div className="mx-auto flex w-fit items-center justify-center gap-2 text-amber-300" aria-hidden="true">
-              <span className="h-2 w-2 rotate-45 bg-amber-300" />
-              <span className="h-px w-12 bg-amber-300" />
-              <span className="h-3 w-3 rotate-45 border-2 border-amber-300" />
-              <span className="h-px w-12 bg-amber-300" />
-              <span className="h-2 w-2 rotate-45 bg-amber-300" />
-            </div>
-            <h2 className="mt-5 text-3xl font-black text-white sm:text-4xl">Proudly Indigenous-Owned</h2>
-            <p className="mx-auto mt-4 max-w-4xl text-lg text-slate-200">
-              Jobsite Finder Technologies Inc. is an Indigenous-owned Canadian construction technology company building a workforce and jobsite discovery platform that connects workers, subcontractors, and general contractors through real active jobsites across Canada.
-            </p>
-            <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-amber-300 sm:text-lg">
-              Built for the Trades. Powered by Real Jobsites.
-            </p>
-          </div>
-        </section>
-
         <section className="border-t border-slate-800 bg-[#07101c] px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl text-center">
             <div className="mx-auto max-w-5xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-6 py-10 shadow-2xl shadow-amber-950/10 sm:px-10">
