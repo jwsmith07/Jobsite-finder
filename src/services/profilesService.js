@@ -12,7 +12,6 @@ export async function ensureProfile(user) {
     full_name: meta.full_name ?? null,
     avatar_url: meta.avatar_url ?? null,
   }
-  if (meta.role) row.role = meta.role
 
   const { data, error } = await supabase
     .from('profiles')

@@ -160,7 +160,7 @@ async function getWorkerProfilesByIds(workerProfileIds = []) {
   if (ids.length === 0) return new Map()
   const { data, error } = await supabase
     .from('worker_profiles')
-    .select('id, profile_id, headline, trade, secondary_trade, apprenticeship_level, trade_level, experience_years, city, province, availability_status, work_preferences, preferred_regions, camp_ready, willing_to_travel, resume_url, talent_visibility')
+    .select('id, profile_id, headline, trade, secondary_trade, apprenticeship_level, trade_level, experience_years, city, province, availability_status, work_preferences, preferred_regions, camp_ready, willing_to_travel, talent_visibility')
     .in('id', ids)
     .range(0, 9999)
   if (error) {
@@ -199,7 +199,7 @@ async function getProjectTalentPool(project, jobs, excludedWorkerProfileIds = []
   const excluded = new Set(excludedWorkerProfileIds.map(String))
   const { data, error } = await supabase
     .from('worker_profiles')
-    .select('id, profile_id, headline, trade, secondary_trade, apprenticeship_level, trade_level, experience_years, city, province, availability_status, work_preferences, preferred_regions, camp_ready, willing_to_travel, resume_url, talent_visibility')
+    .select('id, profile_id, headline, trade, secondary_trade, apprenticeship_level, trade_level, experience_years, city, province, availability_status, work_preferences, preferred_regions, camp_ready, willing_to_travel, talent_visibility')
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(80)
   if (error) {
@@ -256,7 +256,7 @@ function buildSavedCandidateRows(candidates, workerProfiles, jobs, project) {
         worker_name: workerProfile.headline || workerProfile.trade || 'Worker',
         worker_trade: workerProfile.trade,
         worker_experience: workerProfile.experience_years,
-        resume_url: workerProfile.resume_url,
+        resume_url: null,
         job_post: best.job,
         match: best.match,
         status: candidate.stage,

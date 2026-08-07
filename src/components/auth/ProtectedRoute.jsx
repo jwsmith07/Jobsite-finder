@@ -8,8 +8,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
   // While the auth session is resolving — OR the user is signed in and we
   // are still fetching their role from the profiles table — show loading.
-  // This prevents a flash-redirect when the role is in profiles.role but
-  // not in user_metadata.role.
+  // This prevents a flash-redirect while the database profile role loads.
   if (loading || (user && profileLoading)) {
     return (
       <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 text-slate-400">

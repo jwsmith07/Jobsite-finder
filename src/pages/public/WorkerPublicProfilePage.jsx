@@ -204,16 +204,7 @@ export default function WorkerPublicProfilePage() {
           {profile.resume_url && (
             <div>
               <span className="text-sm font-medium text-slate-400">Resume:</span>
-              <div className="mt-2">
-                <a
-                  href={profile.resume_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-sm font-bold text-black hover:bg-amber-300"
-                >
-                  View Resume ↗
-                </a>
-              </div>
+              <p className="mt-1 text-slate-300">Uploaded</p>
             </div>
           )}
 

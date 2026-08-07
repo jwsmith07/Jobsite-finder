@@ -57,8 +57,8 @@ export default function SignUpPage() {
 
     const metadata =
       role === 'worker'
-        ? { full_name: fullName, trade: normalizeTrade(trade), role: 'worker' }
-        : { full_name: companyName, company_name: companyName, role }
+        ? { full_name: fullName, trade: normalizeTrade(trade) }
+        : { full_name: companyName, company_name: companyName }
 
     const { error } = await supabase.auth.signUp({
       email,

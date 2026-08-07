@@ -71,7 +71,6 @@ export default function SelectRolePage() {
       return
     }
 
-    await supabase.auth.updateUser({ data: { ...meta, role: nextRole } })
     navigate(getDefaultRouteForRole(nextRole), { replace: true })
   }
 

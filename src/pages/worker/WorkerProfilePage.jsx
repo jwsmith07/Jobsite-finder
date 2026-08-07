@@ -20,6 +20,7 @@ import {
   normalizeList,
 } from '../../lib/workerCredentials'
 import { launchFlags } from '../../config/launchMode'
+import { createResumeSignedUrl, hasResumeReference } from '../../services/resumeAccessService'
 
 export default function WorkerProfilePage() {
   const { user, loading: authLoading } = useAuth()
@@ -202,6 +203,17 @@ function ProfileDisplay({ profile, userId, onEdit }) {
   const workPreferences = normalizeList(profile.work_preferences)
   const preferredRegions = normalizeList(profile.preferred_regions)
   const completion = getProfileCompletion(profile)
+  const [openingResume, setOpeningResume] = useState(false)
+
+  async function openResume() {
+    setOpeningResume(true)
+    try {
+      const url = await createResumeSignedUrl(profile.resume_url)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } finally {
+      setOpeningResume(false)
+    }
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -265,11 +277,11 @@ function ProfileDisplay({ profile, userId, onEdit }) {
       <GlobalCard padding="md">
         <CardHeader title="Resume" />
         <CardContent className="mt-3">
-          {profile.resume_url ? (
+          {hasResumeReference(profile.resume_url) ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <a href={profile.resume_url} target="_blank" rel="noreferrer">
-                <GlobalButton size="sm">View Resume</GlobalButton>
-              </a>
+              <GlobalButton size="sm" onClick={openResume} disabled={openingResume}>
+                {openingResume ? 'Opening...' : 'View Resume'}
+              </GlobalButton>
               <GlobalButton
                 variant="secondary"
                 size="sm"
@@ -321,7 +333,7 @@ function ProfileDisplay({ profile, userId, onEdit }) {
           )}
           <div className="rounded-xl border border-slate-800 bg-slate-950 p-3">
             <Caption>Resume</Caption>
-            <SmallText>{profile.resume_url ? 'Uploaded' : 'Not uploaded'}</SmallText>
+            <SmallText>{hasResumeReference(profile.resume_url) ? 'Uploaded' : 'Not uploaded'}</SmallText>
           </div>
         </CardContent>
       </GlobalCard>

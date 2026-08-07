@@ -24,11 +24,7 @@ export default function ResumeUpload({ userId, value, onChange }) {
         .upload(path, file, { upsert: false, contentType: file.type })
       if (uploadError) throw uploadError
 
-      const { data: pub } = supabase.storage.from('resumes').getPublicUrl(path)
-      const url = pub?.publicUrl
-      if (!url) throw new Error('Could not get public URL.')
-
-      onChange?.(url)
+      onChange?.(path)
       setMessage({ type: 'success', text: 'Resume uploaded.' })
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Upload failed.' })
@@ -49,16 +45,7 @@ export default function ResumeUpload({ userId, value, onChange }) {
         disabled={uploading}
         className="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-yellow-400 file:px-3 file:py-2 file:font-bold file:text-black hover:file:bg-yellow-300 disabled:opacity-60"
       />
-      {value && (
-        <a
-          href={value}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block text-xs text-yellow-300 underline"
-        >
-          View current resume
-        </a>
-      )}
+      {value && <p className="text-xs text-emerald-300">Current resume uploaded.</p>}
       {uploading && (
         <p className="text-xs text-slate-400">Uploading...</p>
       )}

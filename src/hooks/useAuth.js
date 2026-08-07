@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { normalizeRole } from '../lib/utils'
 
 // Hard cap on profile-fetch wait to avoid permanent loading state if
-// Supabase ever hangs. After this, the app falls back to auth metadata.
+// Supabase ever hangs. After this, protected routes fall back to no role.
 const PROFILE_FETCH_TIMEOUT_MS = 4000
 const SESSION_FETCH_TIMEOUT_MS = 4000
 
@@ -39,11 +39,11 @@ export function useAuth() {
       }
       if (mounted) setProfileLoading(true)
 
-      // Safety timeout — if the network call hangs, give up and let the
-      // app fall back to user_metadata.role rather than freezing routes.
+      // Safety timeout: if the network call hangs, stop blocking routes.
+      // Authorization still depends on the database profile role.
       const timeoutId = setTimeout(() => {
         if (!mounted) return
-        console.warn('[useAuth] profile fetch timed out, using metadata fallback')
+        console.warn('[useAuth] profile fetch timed out, using no-role fallback')
         setProfileLoading(false)
       }, PROFILE_FETCH_TIMEOUT_MS)
 
@@ -107,13 +107,10 @@ export function useAuth() {
     }
   }, [])
 
-  // DB profiles.role is source of truth. Metadata is a fallback so existing
-  // admin accounts do not get locked out if the profile read times out or RLS
-  // blocks the bootstrap lookup.
+  // DB profiles.role is the authorization source of truth. Auth metadata may
+  // still exist for onboarding copy, but it must not grant app access.
   const profileRole = normalizeRole(profile?.role)
-  const appMetadataRole = normalizeRole(user?.app_metadata?.role)
-  const metadataRole = normalizeRole(user?.user_metadata?.role)
-  const role = profileRole || appMetadataRole || metadataRole
+  const role = profileRole
 
   return { user, session, profile, role, loading, profileLoading }
 }

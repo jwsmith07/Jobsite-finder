@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { getMyApplications } from '../../services/applicationsService'
+import { getMyApplications, withdrawApplication } from '../../services/applicationsService'
 import GlobalCard, { CardHeader } from '../../components/ui/GlobalCard'
 import GlobalButton from '../../components/ui/GlobalButton'
 import StatusBadge, { Badge } from '../../components/ui/StatusBadge'
 import { PageTitle, PageSubtitle, CardTitle, SmallText, Caption } from '../../components/ui/Typography'
 import { getContractorDisplayLocation } from '../../lib/utils'
+import { createResumeSignedUrl, hasResumeReference } from '../../services/resumeAccessService'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -19,6 +20,7 @@ const STATUS_STEPS = [
   { key: 'interview', label: 'Interview' },
   { key: 'hired', label: 'Hired' },
   { key: 'rejected', label: 'Rejected' },
+  { key: 'withdrawn', label: 'Withdrawn' },
 ]
 
 function normalizeApplicationStatus(status) {
@@ -28,6 +30,7 @@ function normalizeApplicationStatus(status) {
   if (value === 'interview') return 'interview'
   if (value === 'hired') return 'hired'
   if (value === 'rejected') return 'rejected'
+  if (value === 'withdrawn') return 'withdrawn'
   return 'applied'
 }
 
@@ -71,6 +74,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('active') // active, submitted, closed
+  const [busyId, setBusyId] = useState(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -89,9 +93,36 @@ export default function ApplicationsPage() {
     const status = a.status?.toLowerCase()
     if (filter === 'active') return status === 'submitted' || status === 'applied' || status === 'shortlisted' || status === 'interview'
     if (filter === 'submitted') return status === 'submitted'
-    if (filter === 'closed') return status === 'hired' || status === 'rejected'
+    if (filter === 'closed') return status === 'hired' || status === 'rejected' || status === 'withdrawn'
     return true
   })
+
+  async function openResume(path) {
+    setBusyId(`resume:${path}`)
+    try {
+      const url = await createResumeSignedUrl(path)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleWithdraw(applicationId) {
+    if (!user) return
+    setBusyId(`withdraw:${applicationId}`)
+    setError(null)
+    try {
+      await withdrawApplication(applicationId, user.id)
+      const data = await getMyApplications(user.id)
+      setApps(data)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   if (authLoading) {
     return (
@@ -187,7 +218,7 @@ export default function ApplicationsPage() {
                     <CardTitle>{job.title || 'Job post'}</CardTitle>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <StatusBadge status={a.status} size="sm" />
-                      {a.resume_url ? <Badge variant="success">Resume Attached</Badge> : <Badge variant="warning">No Resume</Badge>}
+                      {hasResumeReference(a.resume_url) ? <Badge variant="success">Resume Attached</Badge> : <Badge variant="warning">No Resume</Badge>}
                     </div>
                   </div>
                   <Caption className="text-right">Applied {formatDate(a.created_at)}</Caption>
@@ -240,17 +271,27 @@ export default function ApplicationsPage() {
                       </GlobalButton>
                     </Link>
                   )}
-                  {a.resume_url && (
-                    <a
-                      href={a.resume_url}
-                      target="_blank"
-                      rel="noreferrer"
+                  {hasResumeReference(a.resume_url) && (
+                    <GlobalButton
+                      size="sm"
+                      variant="secondary"
                       className="flex-1"
+                      disabled={busyId === `resume:${a.resume_url}`}
+                      onClick={() => openResume(a.resume_url)}
                     >
-                      <GlobalButton size="sm" variant="secondary" className="w-full">
-                        Resume Used
-                      </GlobalButton>
-                    </a>
+                      {busyId === `resume:${a.resume_url}` ? 'Opening...' : 'Resume Used'}
+                    </GlobalButton>
+                  )}
+                  {!['hired', 'rejected', 'withdrawn'].includes(String(a.status || '').toLowerCase()) && (
+                    <GlobalButton
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      disabled={busyId === `withdraw:${a.id}`}
+                      onClick={() => handleWithdraw(a.id)}
+                    >
+                      {busyId === `withdraw:${a.id}` ? 'Withdrawing...' : 'Withdraw'}
+                    </GlobalButton>
                   )}
                 </div>
               </div>

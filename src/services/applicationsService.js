@@ -15,7 +15,7 @@ const APP_FIELDS = `
   worker_experience
 `
 
-const VALID_STATUSES = ['applied', 'submitted', 'shortlisted', 'interview', 'rejected', 'hired']
+const VALID_STATUSES = ['applied', 'submitted', 'shortlisted', 'interview', 'rejected', 'hired', 'withdrawn']
 
 function isMissingStructuredJobColumn(error) {
   const message = String(error?.message || '')
@@ -335,5 +335,18 @@ export async function updateApplication(applicationId, userId, updates) {
     .select(APP_FIELDS)
     .maybeSingle()
   if (error) throw new Error(`Failed to update application: ${error.message}`)
+  return data
+}
+
+export async function withdrawApplication(applicationId, userId) {
+  const worker = await getWorkerForUser(userId)
+  const { data, error } = await supabase
+    .from('applications')
+    .update({ status: 'withdrawn' })
+    .eq('id', applicationId)
+    .eq('worker_profile_id', worker.id)
+    .select(APP_FIELDS)
+    .maybeSingle()
+  if (error) throw new Error(`Failed to withdraw application: ${error.message}`)
   return data
 }

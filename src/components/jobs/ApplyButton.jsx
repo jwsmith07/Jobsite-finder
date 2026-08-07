@@ -21,8 +21,7 @@ export default function ApplyButton({ jobPostId }) {
   const [checkingResume, setCheckingResume] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
 
-  // Determine user role
-  const role = normalizeRole(user?.user_metadata?.role || profile?.role)
+  const role = normalizeRole(profile?.role)
 
   // Check if user has already applied and repair any missing snapshot fields
   useEffect(() => {

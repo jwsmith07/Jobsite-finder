@@ -6,7 +6,7 @@ import { normalizeRole } from '../../lib/utils'
 
 export default function SaveJobButton({ jobPostId, initialSaved = false, onChanged }) {
   const { user, profile } = useAuth()
-  const role = normalizeRole(user?.user_metadata?.role || profile?.role)
+  const role = normalizeRole(profile?.role)
   const [saved, setSaved] = useState(initialSaved)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)

@@ -11,6 +11,7 @@ import { launchFlags } from '../../config/launchMode'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { PageTitle, PageSubtitle, CardTitle, SmallText, Caption, Label } from '../../components/ui/Typography'
 import { normalizeTrade } from '../../lib/trades'
+import { createResumeSignedUrl, hasResumeReference } from '../../services/resumeAccessService'
 
 const STATUS_ACTIONS = [
   { value: 'submitted', label: 'Submitted' },
@@ -69,6 +70,19 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
       await load()
     } catch (err) {
       console.error('[GCApplicantsPage] Update error:', err.message)
+      setError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function openResume(application) {
+    setBusyId(`resume:${application.id}`)
+    setError(null)
+    try {
+      const url = await createResumeSignedUrl(application.resume_url)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
       setError(err)
     } finally {
       setBusyId(null)
@@ -195,16 +209,15 @@ export function ApplicantsManager({ roleLabel = 'General Contractor' }) {
                 {/* Actions */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between pt-3 border-t border-slate-800">
                   <div className="flex gap-2">
-                    {a.resume_url && (
-                      <a
-                        href={a.resume_url}
-                        target="_blank"
-                        rel="noreferrer"
+                    {hasResumeReference(a.resume_url) && (
+                      <GlobalButton
+                        size="sm"
+                        variant="secondary"
+                        disabled={busyId === `resume:${a.id}`}
+                        onClick={() => openResume(a)}
                       >
-                        <GlobalButton size="sm" variant="secondary">
-                          View Resume
-                        </GlobalButton>
-                      </a>
+                        {busyId === `resume:${a.id}` ? 'Opening...' : 'View Resume'}
+                      </GlobalButton>
                     )}
                     {launchFlags.SHOW_PUBLIC_PROFILES && a.worker_profile_id && (
                       <Link to={`/worker/${a.worker_profile_id}`}>

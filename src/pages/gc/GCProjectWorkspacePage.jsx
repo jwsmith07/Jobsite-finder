@@ -1114,12 +1114,12 @@ function ApplicantCard({
           <p className="mt-1 text-sm text-slate-400">
             {[profile.trade || application.worker_trade, profile.trade_level || profile.apprenticeship_level, application.job_post?.title].filter(Boolean).join(' | ') || 'Trade not listed'}
           </p>
-          <ProfileBadges profile={{ ...profile, resume_url: profile.resume_url || application.resume_url }} />
+          <ProfileBadges profile={{ ...profile, resume_url: application.resume_url }} />
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Info label="Years Experience" value={profile.experience_years ?? application.worker_experience} />
             <Info label="Availability" value={getAvailabilityLabel(profile.availability_status)} />
             <Info label="Certifications" value={certifications.length} />
-            <Info label="Resume" value={application.resume_url || profile.resume_url ? 'Available' : 'Not uploaded'} />
+            <Info label="Resume" value={application.resume_url ? 'Available' : 'Not uploaded'} />
           </div>
           <p className="mt-3 text-xs text-slate-500">Applied {formatDate(application.created_at)}</p>
         </div>
@@ -1210,7 +1210,7 @@ function buildSavedCandidateRows(data) {
         worker_name: item.worker_profile.headline || item.worker_profile.trade || 'Worker',
         worker_trade: item.worker_profile.trade,
         worker_experience: item.worker_profile.experience_years,
-        resume_url: item.worker_profile.resume_url,
+        resume_url: null,
         job_post: item.job,
         match: item.match,
         status: item.candidate?.stage || 'saved',

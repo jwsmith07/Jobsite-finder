@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Jobsite Finder V1 — Production-Ready Local Setup
+# Jobsite Finder V1 - Production-Ready Local Setup
 
 This is the cleaned standalone version of the Jobsite Finder V1 frontend.
 
@@ -99,7 +98,5 @@ The production output goes to:
 ```text
 dist/
 ```
-=======
-# Jobsite-finder
-Jobsite Finder – A platform connecting tradespeople to real construction projects (active and upcoming).
->>>>>>> bc49575267cf7c7dcc69de12f9b8fdf3cc94e6df
+
+Jobsite Finder is a platform connecting tradespeople to real construction projects, active and upcoming.
