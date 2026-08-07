@@ -77,7 +77,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
-    "supabase": "^2.112.0",
+    "supabase": "2.111.0",
     "typescript": "~5.9.2",
     "vite": "^7.3.2"
   }
