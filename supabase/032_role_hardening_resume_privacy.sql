@@ -91,8 +91,8 @@ $$;
 revoke all on function public.current_user_worker_profile_id_text() from public, anon, authenticated;
 grant execute on function public.current_user_worker_profile_id_text() to authenticated;
 
-create or replace function public.current_user_authorized_company_profile_id_text()
-returns text
+create or replace function public.current_user_can_manage_hiring_company_profile(p_company_profile_id text)
+returns boolean
 language sql
 stable
 security definer
@@ -101,11 +101,11 @@ as $$
   -- Deliberately fail closed until V2 organization memberships are introduced.
   -- Do not replace this with company_profiles.profile_id = auth.uid(); selecting
   -- GC/SC must not independently grant hiring authority.
-  select null::text;
+  select false;
 $$;
 
-revoke all on function public.current_user_authorized_company_profile_id_text() from public, anon, authenticated;
-grant execute on function public.current_user_authorized_company_profile_id_text() to authenticated;
+revoke all on function public.current_user_can_manage_hiring_company_profile(text) from public, anon, authenticated;
+grant execute on function public.current_user_can_manage_hiring_company_profile(text) to authenticated;
 
 create or replace function public.application_job_owner_company_id_text(p_job_post_id bigint)
 returns text
@@ -131,7 +131,6 @@ set search_path = public
 as $$
 declare
   v_worker_id text := public.current_user_worker_profile_id_text();
-  v_company_id text := public.current_user_authorized_company_profile_id_text();
   v_owner_company_id text := public.application_job_owner_company_id_text(old.job_post_id);
   v_is_admin boolean := public.is_current_user_admin();
 begin
@@ -151,7 +150,7 @@ begin
     return new;
   end if;
 
-  if v_company_id is not null and v_owner_company_id = v_company_id then
+  if public.current_user_can_manage_hiring_company_profile(v_owner_company_id) then
     if (to_jsonb(new) - array['status', 'company_notes']) <> (to_jsonb(old) - array['status', 'company_notes']) then
       raise exception 'Hiring organizations may update only hiring fields.';
     end if;
@@ -181,10 +180,10 @@ drop policy if exists "applications_update_company" on public.applications;
 create policy "applications_update_company" on public.applications
   for update
   using (
-    public.application_job_owner_company_id_text(job_post_id) = public.current_user_authorized_company_profile_id_text()
+    public.current_user_can_manage_hiring_company_profile(public.application_job_owner_company_id_text(job_post_id))
   )
   with check (
-    public.application_job_owner_company_id_text(job_post_id) = public.current_user_authorized_company_profile_id_text()
+    public.current_user_can_manage_hiring_company_profile(public.application_job_owner_company_id_text(job_post_id))
   );
 
 drop policy if exists "applications_admin_update_all" on public.applications;
@@ -218,7 +217,7 @@ create policy "resumes_select_application_company" on storage.objects
       join public.worker_profiles wp on wp.id = a.worker_profile_id
       where a.resume_url = storage.objects.name
         and wp.profile_id::text = (storage.foldername(storage.objects.name))[1]
-        and j.company_profile_id::text = public.current_user_authorized_company_profile_id_text()
+        and public.current_user_can_manage_hiring_company_profile(j.company_profile_id::text)
     )
   );
 

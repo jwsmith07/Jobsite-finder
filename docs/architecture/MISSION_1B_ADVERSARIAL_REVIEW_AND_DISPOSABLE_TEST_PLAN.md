@@ -21,13 +21,13 @@ Status: Draft. Do not apply `supabase/032_role_hardening_resume_privacy.sql` to 
 2. The migration history has conflicting assumptions for `company_profiles.id`: most migrations treat it as `bigint`, while `020_gc_subcontractor_assignments.sql` declares `gc_company_id uuid references public.company_profiles(id)`. The corrected `032` avoids returning a fixed company ID type by comparing IDs as text at policy boundaries.
 3. The original application trigger blocked a hard-coded list of worker-controlled columns. That would permit future or unlisted application columns to be changed accidentally. The corrected trigger uses JSONB row comparison and allows only the exact approved fields.
 4. Security-definer helper functions lacked explicit function privilege hardening. The corrected draft revokes default public execution and grants only the policy-required helper functions to authenticated users.
-5. The repository does not contain `organizations` or `organization_memberships` tables. `032` therefore cannot safely implement hiring-organization authorization yet. It now fails closed through `current_user_authorized_company_profile_id_text()`.
+5. The repository does not contain `organizations` or `organization_memberships` tables. `032` therefore cannot safely implement hiring-organization authorization yet. It now fails closed through `current_user_can_manage_hiring_company_profile(text)`.
 6. `applications.status = 'withdrawn'` is used by frontend code and `032`, but no repository migration defines an application status enum or check constraint. A disposable database must verify any existing production constraint before applying `032`.
 7. Existing resume records may contain full public URLs in `worker_profiles.resume_url` and `applications.resume_url`. Private storage policies require object paths, so legacy data must be converted before private resume access is considered complete.
 
 ## Required Corrections Made to Migration 032
 
-- Replaced direct company-profile ownership helper with `current_user_authorized_company_profile_id_text()`, which deliberately returns `null` until active V2 organization membership exists.
+- Replaced direct company-profile ownership helper with `current_user_can_manage_hiring_company_profile(text)`, which deliberately returns `false` until active V2 organization membership exists.
 - Changed worker/company helper comparisons to text to avoid the repository's existing `bigint`/`uuid` migration conflict.
 - Changed `guard_application_update()` to allow workers to change only `status`, and only to `withdrawn`.
 - Changed hiring-organization application updates to allow only `status` and `company_notes`, with no ownership, job, worker, resume, snapshot, or pipeline-field changes.

@@ -38,6 +38,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 030_canada_import_duplicate_protection.sql
 031_project_eligibility_rules.sql
 032_role_hardening_resume_privacy.sql
+033_organization_membership_authorization_foundation.sql
 ```
 
 ## Known Numbering Conflict
@@ -79,3 +80,9 @@ public.run_canada_project_import
 `032_role_hardening_resume_privacy.sql` is a draft-forward migration. It must not be applied until reviewed and explicitly approved.
 
 Mission 1B review changed the draft to fail closed for hiring-organization authority. The repository does not yet contain the V2 active organization-membership schema required to grant company, project, job, application, or resume control. Applying `032` before that membership model exists would preserve worker/admin resume access and role hardening, but would intentionally block GC/SC hiring-organization application and resume access until a later authorized membership migration connects that authority.
+
+## Mission 2 Draft Migration
+
+`033_organization_membership_authorization_foundation.sql` is a draft-forward migration. It must not be applied until reviewed and tested with corrected `032` in a disposable Supabase environment.
+
+Mission 2 records `company_profiles.id` as `bigint/int8` for compatibility because the repository overwhelmingly uses bigint company references. `020_gc_subcontractor_assignments.sql` remains the known outlier because it declares company profile foreign keys as UUID. Do not edit or renumber `020`; reconcile it with a later forward-only repair after disposable testing proves the live schema shape.

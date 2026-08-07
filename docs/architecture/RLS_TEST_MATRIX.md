@@ -11,6 +11,8 @@ worker_b
 gc_owner
 gc_other
 sc_owner
+gc_hiring_manager
+gc_member
 admin_user
 ```
 
@@ -36,7 +38,10 @@ admin_user
 | worker_a | create signed URL for own object | allowed |
 | worker_b | create signed URL for worker_a object | denied |
 | gc_owner with only `company_profiles.profile_id` ownership | create signed URL for applicant resume tied to owned job | denied |
-| gc_owner with active authorized V2 organization membership | create signed URL for applicant resume tied to owned job | allowed after membership migration |
+| gc_owner with active V2 Owner membership | create signed URL for applicant resume tied to owned job | allowed after membership migration |
+| gc_hiring_manager with active V2 membership | create signed URL for applicant resume tied to owned job | allowed after membership migration |
+| gc_member with active V2 Member membership | create signed URL for applicant resume tied to owned job | denied |
+| suspended org member | create signed URL for applicant resume tied to previously owned job | denied |
 | gc_other | create signed URL for same resume without owned job | denied |
 | sc_owner with only `company_profiles.profile_id` ownership | create signed URL for applicant resume tied to owned job | denied |
 | sc_owner with active authorized V2 organization membership | create signed URL for applicant resume tied to owned job | allowed after membership migration |
@@ -54,9 +59,27 @@ admin_user
 | worker_a | update `company_notes` | denied |
 | worker_a | change `job_post_id` or `worker_profile_id` | denied |
 | gc_owner with only `company_profiles.profile_id` ownership | update status/company_notes for owned job application | denied |
-| gc_owner with active authorized V2 organization membership | update status/company_notes for owned job application | allowed after membership migration |
+| gc_owner with active V2 Owner membership | update status/company_notes for owned job application | allowed after membership migration |
+| gc_hiring_manager with active V2 membership | update status/company_notes for owned job application | allowed after membership migration |
+| gc_member with active V2 Member membership | update status/company_notes for owned job application | denied |
+| suspended org member | update status/company_notes for previously owned job application | denied |
 | gc_other | update status/company_notes for unowned job application | denied |
 | gc_owner | change application ownership fields | denied |
+
+## Organization Membership Tests
+
+| Actor | Action | Expected |
+| --- | --- | --- |
+| GC profile with no membership | update company profile | denied |
+| active Owner | update safe company profile fields | allowed |
+| active Owner | update `verified`, `is_hidden`, `profile_id` | denied |
+| active Admin | invite Hiring Manager or Member | allowed |
+| active Hiring Manager | invite Admin or Member | denied |
+| active Member | manage memberships | denied |
+| invited user | accept own invitation without changing role/org/profile | allowed |
+| invited user | accept invitation while changing role | denied |
+| Owner | self-remove or self-demote | denied without protected ownership transfer |
+| Platform Admin | perform emergency membership update | allowed |
 
 ## Regression Tests
 
