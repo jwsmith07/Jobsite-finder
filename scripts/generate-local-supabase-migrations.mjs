@@ -10,6 +10,7 @@ const tempRoot = path.join(supabaseDir, '.temp')
 const projectRefPath = path.join(tempRoot, 'project-ref')
 
 const manifest = [
+  ['20260807000000', '000_initial_v1_schema_baseline.sql'],
   ['20260807000100', '001_worker_profiles_columns.sql'],
   ['20260807000200', '002_company_and_profiles_columns.sql'],
   ['20260807000300', '003_profile_rls_policies.sql'],

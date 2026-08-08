@@ -5,6 +5,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 ## Execution Order
 
 ```text
+000_initial_v1_schema_baseline.sql
 001_worker_profiles_columns.sql
 002_company_and_profiles_columns.sql
 003_profile_rls_policies.sql
@@ -86,3 +87,9 @@ Mission 1B review changed the draft to fail closed for hiring-organization autho
 `033_organization_membership_authorization_foundation.sql` is a draft-forward migration. It must not be applied until reviewed and tested with corrected `032` in a disposable Supabase environment.
 
 Mission 2 records `company_profiles.id` as `bigint/int8` for compatibility because the repository overwhelmingly uses bigint company references. `020_gc_subcontractor_assignments.sql` remains the known outlier because it declares company profile foreign keys as UUID. Do not edit or renumber `020`; reconcile it with a later forward-only repair after disposable testing proves the live schema shape.
+
+## Local Disposable Baseline
+
+`000_initial_v1_schema_baseline.sql` is a reconstructed schema-only baseline for local disposable testing. It creates the V1 foundation that predates the tracked migration history: `profiles`, `worker_profiles`, `company_profiles`, `projects`, `jobsites`, `job_posts`, `applications`, and `project_claims`.
+
+It is derived from a schema-only dump of the existing Supabase project and excludes table data, auth users, storage object records, storage internals, and objects introduced by migrations `001` through `033`. It must run before `001_worker_profiles_columns.sql` only in local/disposable reconstruction.
