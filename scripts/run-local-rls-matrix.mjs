@@ -19,6 +19,9 @@ const ids = {
   otherOwner: '10000000-0000-0000-0000-000000000013',
   companyCreator: '10000000-0000-0000-0000-000000000014',
   multiOrg: '10000000-0000-0000-0000-000000000015',
+  platformOwner: '10000000-0000-0000-0000-000000000016',
+  suspendedStaff: '10000000-0000-0000-0000-000000000017',
+  staffCandidate: '10000000-0000-0000-0000-000000000018',
 }
 
 const actors = {
@@ -37,6 +40,9 @@ const actors = {
   platformAdmin: { role: 'authenticated', sub: ids.platformAdmin },
   service: { role: 'service_role', sub: ids.platformAdmin },
   multiOrg: { role: 'authenticated', sub: ids.multiOrg },
+  platformOwner: { role: 'authenticated', sub: ids.platformOwner },
+  suspendedStaff: { role: 'authenticated', sub: ids.suspendedStaff },
+  staffCandidate: { role: 'authenticated', sub: ids.staffCandidate },
 }
 
 function psql(sql) {
@@ -141,6 +147,7 @@ const setupSql = `
 set session_replication_role = replica;
 
 delete from public.membership_invitations where email like '${marker}%';
+delete from public.platform_staff where profile_id in (${Object.values(ids).map(sqlString).join(',')});
 delete from public.organization_memberships where profile_id in (${Object.values(ids).map(sqlString).join(',')});
 delete from public.organizations where id in (9101, 9102);
 delete from public.gc_subcontractor_assignments where jobsite_id in (9101, 9102);
@@ -175,7 +182,10 @@ values
   (${sqlString(ids.platformAdmin)}, 'authenticated', 'authenticated', '${marker}+platformadmin@example.test', now(), now(), now()),
   (${sqlString(ids.otherOwner)}, 'authenticated', 'authenticated', '${marker}+otherowner@example.test', now(), now(), now()),
   (${sqlString(ids.companyCreator)}, 'authenticated', 'authenticated', '${marker}+creator@example.test', now(), now(), now()),
-  (${sqlString(ids.multiOrg)}, 'authenticated', 'authenticated', '${marker}+multiorg@example.test', now(), now(), now());
+  (${sqlString(ids.multiOrg)}, 'authenticated', 'authenticated', '${marker}+multiorg@example.test', now(), now(), now()),
+  (${sqlString(ids.platformOwner)}, 'authenticated', 'authenticated', '${marker}+platformowner@example.test', now(), now(), now()),
+  (${sqlString(ids.suspendedStaff)}, 'authenticated', 'authenticated', '${marker}+suspendedstaff@example.test', now(), now(), now()),
+  (${sqlString(ids.staffCandidate)}, 'authenticated', 'authenticated', '${marker}+staffcandidate@example.test', now(), now(), now());
 
 insert into public.profiles (id, email, full_name, role)
 values
@@ -193,7 +203,16 @@ values
   (${sqlString(ids.platformAdmin)}, '${marker}+platformadmin@example.test', 'RLS Platform Admin', 'admin'),
   (${sqlString(ids.otherOwner)}, '${marker}+otherowner@example.test', 'RLS Other Owner', 'gc'),
   (${sqlString(ids.companyCreator)}, '${marker}+creator@example.test', 'RLS Company Creator', 'gc'),
-  (${sqlString(ids.multiOrg)}, '${marker}+multiorg@example.test', 'RLS Multi Org', 'gc');
+  (${sqlString(ids.multiOrg)}, '${marker}+multiorg@example.test', 'RLS Multi Org', 'gc'),
+  (${sqlString(ids.platformOwner)}, '${marker}+platformowner@example.test', 'RLS Platform Owner', 'admin'),
+  (${sqlString(ids.suspendedStaff)}, '${marker}+suspendedstaff@example.test', 'RLS Suspended Staff', 'admin'),
+  (${sqlString(ids.staffCandidate)}, '${marker}+staffcandidate@example.test', 'RLS Staff Candidate', 'worker');
+
+insert into public.platform_staff (profile_id, role, status, created_by)
+values
+  (${sqlString(ids.platformOwner)}, 'platform_owner', 'active', ${sqlString(ids.platformOwner)}),
+  (${sqlString(ids.platformAdmin)}, 'platform_admin', 'active', ${sqlString(ids.platformOwner)}),
+  (${sqlString(ids.suspendedStaff)}, 'platform_admin', 'suspended', ${sqlString(ids.platformOwner)});
 
 insert into public.worker_profiles (id, profile_id, trade, experience_years, city, resume_url, bio, talent_visibility)
 values
@@ -275,6 +294,7 @@ set session_replication_role = DEFAULT;
 const cleanupSql = `
 set session_replication_role = replica;
 delete from public.membership_invitations where email like '${marker}%';
+delete from public.platform_staff where profile_id in (${Object.values(ids).map(sqlString).join(',')});
 delete from public.organization_memberships where id between 9101 and 9110;
 delete from public.organizations where id in (9101, 9102);
 delete from public.gc_subcontractor_assignments where jobsite_id in (9101, 9102);
@@ -370,6 +390,21 @@ const tests = [
   ['RLS-074', 'import rpc authenticated denied', 'worker', "select * from public.run_canada_project_import('jobsite_project_import_staging','rls','rls');", { kind: 'error' }, '034 revoke execute'],
   ['RLS-075', 'truncate privilege absent', 'worker', "select has_table_privilege('authenticated','public.projects','TRUNCATE');", { kind: 'scalar', value: 'f' }, '034 privilege hardening'],
   ['RLS-076', 'sequence update absent', 'worker', "select has_sequence_privilege('authenticated','public.projects_id_seq','UPDATE');", { kind: 'scalar', value: 'f' }, '034 privilege hardening'],
+
+  ['RLS-080', 'platform owner/select all worker profiles', 'platformOwner', 'select count(*)::int >= 2 from public.worker_profiles;', { kind: 'scalar', value: 't' }, 'platform_staff_worker_profiles_all'],
+  ['RLS-081', 'platform owner/update any company profile', 'platformOwner', "update public.company_profiles set description = 'platform owner update' where id = 9103 returning id;", { kind: 'scalar', value: 9103 }, 'platform_staff_company_profiles_admin'],
+  ['RLS-082', 'platform owner/update any project', 'platformOwner', "update public.projects set city = 'Platform City' where id = 9102 returning id;", { kind: 'scalar', value: 9102 }, 'platform_staff_projects_admin'],
+  ['RLS-083', 'platform admin/select all worker profiles', 'platformAdmin', 'select count(*)::int >= 2 from public.worker_profiles;', { kind: 'scalar', value: 't' }, 'platform_staff_worker_profiles_all'],
+  ['RLS-084', 'platform admin/update application operationally', 'platformAdmin', "update public.applications set status = 'reviewing', company_notes = 'platform admin' where id = 9102 returning id;", { kind: 'scalar', value: 9102 }, 'platform_staff_applications_admin'],
+  ['RLS-085', 'platform owner/appoint platform admin', 'platformOwner', `insert into public.platform_staff (profile_id, role, status, created_by) values (${sqlString(ids.staffCandidate)}, 'platform_admin', 'active', auth.uid()) returning role;`, { kind: 'scalar', value: 'platform_admin' }, 'platform_staff_insert_admin_by_owner'],
+  ['RLS-086', 'platform admin/cannot appoint owner', 'platformAdmin', `insert into public.platform_staff (profile_id, role, status, created_by) values (${sqlString(ids.staffCandidate)}, 'platform_owner', 'active', auth.uid()) returning role;`, { kind: 'error' }, 'platform_staff_insert_admin_by_owner'],
+  ['RLS-087', 'platform admin/cannot demote owner', 'platformAdmin', `update public.platform_staff set status = 'removed' where profile_id = ${sqlString(ids.platformOwner)} returning status;`, { kind: 'deny' }, 'platform_staff_update_admin_by_owner'],
+  ['RLS-088', 'platform admin/cannot promote self', 'platformAdmin', "update public.platform_staff set role = 'platform_owner' where profile_id = auth.uid() returning role;", { kind: 'deny' }, 'platform_staff_update_admin_by_owner'],
+  ['RLS-089', 'ordinary user/cannot self assign staff role', 'worker', `insert into public.platform_staff (profile_id, role, status, created_by) values (${sqlString(ids.worker)}, 'platform_admin', 'active', auth.uid()) returning role;`, { kind: 'error' }, 'platform_staff_insert_admin_by_owner'],
+  ['RLS-090', 'suspended platform staff loses global access', 'suspendedStaff', 'select count(*)::int > 1 from public.worker_profiles;', { kind: 'scalar', value: 'f' }, 'platform_staff_inactive_denied'],
+  ['RLS-091', 'org admin/cannot update other organization company', 'orgAdmin', "update public.company_profiles set description = 'blocked org admin' where id = 9103 returning id;", { kind: 'deny' }, 'organization_admin_scoped_company'],
+  ['RLS-092', 'platform owner/manage project claim', 'platformOwner', "update public.project_claims set status = 'approved' where id = 9103 returning id;", { kind: 'scalar', value: 9103 }, 'platform_staff_project_claims_admin'],
+  ['RLS-093', 'platform admin/moderate project image', 'platformAdmin', "insert into public.project_images (project_id, company_id, image_url, uploaded_by) values (9102,9103,'https://example.test/platform-admin-image.jpg',auth.uid()) returning project_id;", { kind: 'scalar', value: 9102 }, 'platform_staff_project_images_admin'],
 ]
 
 function main() {

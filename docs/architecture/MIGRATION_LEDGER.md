@@ -42,6 +42,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 034_database_privilege_hardening.sql
 035_rls_behavioral_blocker_corrections.sql
 036_candidate_pipeline_organization_authorization.sql
+037_platform_staff_authorization.sql
 ```
 
 ## Known Numbering Conflict
@@ -113,6 +114,12 @@ The final decided RLS matrix failure was `RLS-048`: Hiring Manager application s
 ## Candidate Pipeline Organization Authorization
 
 `036_candidate_pipeline_organization_authorization.sql` implements the approved candidate-pipeline role model. Active organization Owner, Admin, and Hiring Manager memberships may view and manage candidate-pipeline records only when their company has the approved GC/general-contractor claim for the record's project. Ordinary Members, invited/suspended/removed memberships, unrelated organizations, and workers remain denied. Temporary legacy company-owner compatibility is preserved through `company_profiles.profile_id = auth.uid()` for the same claimed company/project relationship.
+
+## Platform Staff Authorization
+
+`037_platform_staff_authorization.sql` creates `platform_staff` as the protected source of platform-wide authority, separate from profile experience roles and customer organization memberships. It defines active `platform_owner` and `platform_admin` helpers, repoints legacy admin helper names to the staff table, and adds platform-staff policies for administrative access to profiles, workers, companies, projects, claims, project images, jobs, applications, site settings and waitlist review. Platform Owner can appoint and suspend Platform Admins through RLS; Platform Admins cannot appoint owners, demote the owner, or promote themselves.
+
+Production Platform Owner bootstrap must be performed manually through a service-role/database-owner SQL insert for Joseph's verified profile UUID after deployment. The repository does not guess or hard-code Joseph's email or UUID. Dedicated admin audit logging remains a mandatory follow-up because no complete audit-event infrastructure exists yet.
 
 ## Mission 1 Draft Migration
 
