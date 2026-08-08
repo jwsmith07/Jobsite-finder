@@ -16,9 +16,9 @@ $$;
 
 create table if not exists public.gc_subcontractor_assignments (
   id uuid primary key default gen_random_uuid(),
-  gc_company_id uuid not null references public.company_profiles(id) on delete cascade,
-  subcontractor_company_id uuid not null references public.company_profiles(id) on delete cascade,
-  jobsite_id uuid not null references public.jobsites(id) on delete cascade,
+  gc_company_id bigint not null references public.company_profiles(id) on delete cascade,
+  subcontractor_company_id bigint not null references public.company_profiles(id) on delete cascade,
+  jobsite_id bigint not null references public.jobsites(id) on delete cascade,
   status text not null default 'active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -61,7 +61,7 @@ as $$
 $$;
 
 create or replace function public.current_user_company_id()
-returns uuid
+returns bigint
 language sql
 stable
 as $$
@@ -72,8 +72,8 @@ as $$
 $$;
 
 create or replace function public.gc_can_manage_assignment_jobsite(
-  p_gc_company_id uuid,
-  p_jobsite_id uuid
+  p_gc_company_id bigint,
+  p_jobsite_id bigint
 )
 returns boolean
 language sql

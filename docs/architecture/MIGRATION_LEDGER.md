@@ -86,7 +86,9 @@ Mission 1B review changed the draft to fail closed for hiring-organization autho
 
 `033_organization_membership_authorization_foundation.sql` is a draft-forward migration. It must not be applied until reviewed and tested with corrected `032` in a disposable Supabase environment.
 
-Mission 2 records `company_profiles.id` as `bigint/int8` for compatibility because the repository overwhelmingly uses bigint company references. `020_gc_subcontractor_assignments.sql` remains the known outlier because it declares company profile foreign keys as UUID. Do not edit or renumber `020`; reconcile it with a later forward-only repair after disposable testing proves the live schema shape.
+Mission 2 records `company_profiles.id` as `bigint/int8` for compatibility because the repository overwhelmingly uses bigint company references.
+
+`020_gc_subcontractor_assignments.sql` previously declared `gc_company_id`, `subcontractor_company_id`, and `jobsite_id` as `uuid`, which failed in local disposable testing with SQLSTATE `42804` because `company_profiles.id` and `jobsites.id` are `bigint`. The migration was corrected in place to use bigint foreign-key columns while preserving the assignment table's UUID primary key.
 
 ## Local Disposable Baseline
 
