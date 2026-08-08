@@ -44,6 +44,7 @@ const manifest = [
   ['20260807003100', '031_project_eligibility_rules.sql'],
   ['20260807003200', '032_role_hardening_resume_privacy.sql'],
   ['20260807003300', '033_organization_membership_authorization_foundation.sql'],
+  ['20260807003400', '034_database_privilege_hardening.sql'],
 ]
 
 function generatedName([timestamp, sourceName]) {

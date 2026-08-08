@@ -39,6 +39,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 031_project_eligibility_rules.sql
 032_role_hardening_resume_privacy.sql
 033_organization_membership_authorization_foundation.sql
+034_database_privilege_hardening.sql
 ```
 
 ## Known Numbering Conflict
@@ -90,6 +91,12 @@ public.run_canada_project_import
 Clean local replay then reached `031_project_eligibility_rules.sql` and failed with SQLSTATE `42P13`: `CREATE OR REPLACE FUNCTION` cannot change the OUT-parameter structure of a `RETURNS TABLE` function. `030_canada_import_duplicate_protection.sql` creates `public.run_canada_project_import(text, text, text)`, and `031` intentionally upgrades the return structure to include eligibility counts and exclusion reasons.
 
 Repair: `031` explicitly drops `public.run_canada_project_import(text, text, text)` immediately before recreating the upgraded function, without `CASCADE`. Repository analysis found no dependent schema objects, grants, comments, or application RPC calls requiring restoration after the drop/recreate.
+
+## Database Privilege Hardening
+
+`034_database_privilege_hardening.sql` is a forward-only privilege hardening migration created after clean schema reconstruction exposed broad client grants. It revokes `TRUNCATE`, `TRIGGER`, and `REFERENCES` from `PUBLIC`, `anon`, and `authenticated` on application-owned public tables because `TRUNCATE` bypasses RLS. It revokes client sequence `UPDATE`, protects operational import/quarantine tables with RLS enabled and no client policies, and revokes client execution of the manual Canada import RPC and trigger-only functions.
+
+This migration deliberately does not alter legacy company-ownership RLS policies. The transition from `company_profiles.profile_id` authority to organization membership requires separate behavioral RLS testing and authorization work.
 
 ## Mission 1 Draft Migration
 
