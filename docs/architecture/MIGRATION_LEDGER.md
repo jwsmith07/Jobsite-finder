@@ -43,6 +43,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 035_rls_behavioral_blocker_corrections.sql
 036_candidate_pipeline_organization_authorization.sql
 037_platform_staff_authorization.sql
+038_platform_admin_audit_logging.sql
 ```
 
 ## Known Numbering Conflict
@@ -120,6 +121,10 @@ The final decided RLS matrix failure was `RLS-048`: Hiring Manager application s
 `037_platform_staff_authorization.sql` creates `platform_staff` as the protected source of platform-wide authority, separate from profile experience roles and customer organization memberships. It defines active `platform_owner` and `platform_admin` helpers, repoints legacy admin helper names to the staff table, and adds platform-staff policies for administrative access to profiles, workers, companies, projects, claims, project images, jobs, applications, site settings and waitlist review. Platform Owner can appoint and suspend Platform Admins through RLS; Platform Admins cannot appoint owners, demote the owner, or promote themselves.
 
 Production Platform Owner bootstrap must be performed manually through a service-role/database-owner SQL insert for Joseph's verified profile UUID after deployment. The repository does not guess or hard-code Joseph's email or UUID. Dedicated admin audit logging remains a mandatory follow-up because no complete audit-event infrastructure exists yet.
+
+## Platform Admin Audit Logging
+
+`038_platform_admin_audit_logging.sql` creates append-only `platform_audit_events` for sensitive platform staff actions. Trigger-created events cover platform staff appointment/status changes, company suspension/reactivation, project edits/hide/restore/delete, project-claim approval/rejection, job/application/project-image moderation, and site-setting changes. Events record actor id, active platform role, action, target table/id, timestamp, and allowlisted before/after fields only; passwords, tokens, service credentials, payment details, resumes, and full rows are deliberately excluded. Clients cannot insert, update, delete, truncate, trigger, or reference audit rows; active Platform Owner/Admin may read them through RLS.
 
 ## Mission 1 Draft Migration
 

@@ -146,6 +146,10 @@ function firstError(stderr) {
 const setupSql = `
 set session_replication_role = replica;
 
+delete from public.platform_audit_events
+where actor_profile_id in (${Object.values(ids).map(sqlString).join(',')})
+  or target_record_id in ('9101', '9102', '9103', ${Object.values(ids).map(sqlString).join(',')})
+  or action like 'rls.%';
 delete from public.membership_invitations where email like '${marker}%';
 delete from public.platform_staff where profile_id in (${Object.values(ids).map(sqlString).join(',')});
 delete from public.organization_memberships where profile_id in (${Object.values(ids).map(sqlString).join(',')});
@@ -293,6 +297,10 @@ set session_replication_role = DEFAULT;
 
 const cleanupSql = `
 set session_replication_role = replica;
+delete from public.platform_audit_events
+where actor_profile_id in (${Object.values(ids).map(sqlString).join(',')})
+  or target_record_id in ('9101', '9102', '9103', ${Object.values(ids).map(sqlString).join(',')})
+  or action like 'rls.%';
 delete from public.membership_invitations where email like '${marker}%';
 delete from public.platform_staff where profile_id in (${Object.values(ids).map(sqlString).join(',')});
 delete from public.organization_memberships where id between 9101 and 9110;
@@ -405,6 +413,22 @@ const tests = [
   ['RLS-091', 'org admin/cannot update other organization company', 'orgAdmin', "update public.company_profiles set description = 'blocked org admin' where id = 9103 returning id;", { kind: 'deny' }, 'organization_admin_scoped_company'],
   ['RLS-092', 'platform owner/manage project claim', 'platformOwner', "update public.project_claims set status = 'approved' where id = 9103 returning id;", { kind: 'scalar', value: 9103 }, 'platform_staff_project_claims_admin'],
   ['RLS-093', 'platform admin/moderate project image', 'platformAdmin', "insert into public.project_images (project_id, company_id, image_url, uploaded_by) values (9102,9103,'https://example.test/platform-admin-image.jpg',auth.uid()) returning project_id;", { kind: 'scalar', value: 9102 }, 'platform_staff_project_images_admin'],
+
+  ['RLS-094', 'audit/platform owner company suspension logged', 'platformOwner', "update public.company_profiles set is_hidden = true where id = 9103; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_owner' and action = 'company.suspend' and target_table = 'company_profiles' and target_record_id = '9103' and occurred_at is not null and after_state @> '{\"is_hidden\":true}'::jsonb;", { kind: 'scalar', value: 1 }, 'platform_audit_company_suspend'],
+  ['RLS-095', 'audit/platform admin application moderation logged', 'platformAdmin', "update public.applications set status = 'reviewing', company_notes = 'audit admin' where id = 9102; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_admin' and action = 'application.moderate.update' and target_table = 'applications' and target_record_id = '9102' and after_state @> '{\"status\":\"reviewing\"}'::jsonb;", { kind: 'scalar', value: 1 }, 'platform_audit_application_moderation'],
+  ['RLS-096', 'audit/platform owner staff appointment logged', 'platformOwner', `insert into public.platform_staff (profile_id, role, status, created_by) values (${sqlString(ids.staffCandidate)}, 'platform_admin', 'active', auth.uid()); select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_owner' and action = 'platform_staff.appoint' and target_table = 'platform_staff' and target_record_id = ${sqlString(ids.staffCandidate)} and after_state @> '{"role":"platform_admin","status":"active"}'::jsonb;`, { kind: 'scalar', value: 1 }, 'platform_audit_staff_appointment'],
+  ['RLS-097', 'audit/platform owner staff suspension logged', 'platformOwner', `update public.platform_staff set status = 'suspended' where profile_id = ${sqlString(ids.platformAdmin)}; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_owner' and action = 'platform_staff.suspend' and target_table = 'platform_staff' and target_record_id = ${sqlString(ids.platformAdmin)} and after_state @> '{"status":"suspended"}'::jsonb;`, { kind: 'scalar', value: 1 }, 'platform_audit_staff_suspension'],
+  ['RLS-098', 'audit/platform owner staff removal logged', 'platformOwner', `update public.platform_staff set status = 'removed' where profile_id = ${sqlString(ids.platformAdmin)}; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_owner' and action = 'platform_staff.remove' and target_table = 'platform_staff' and target_record_id = ${sqlString(ids.platformAdmin)} and after_state @> '{"status":"removed"}'::jsonb;`, { kind: 'scalar', value: 1 }, 'platform_audit_staff_removal'],
+  ['RLS-099', 'audit/site setting change logged', 'platformAdmin', `update public.site_settings set value = '{"enabled":true}'::jsonb where key = '${marker}_maintenance'; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and actor_platform_role = 'platform_admin' and action = 'site_setting.change' and target_table = 'site_settings' and target_record_id = '${marker}_maintenance';`, { kind: 'scalar', value: 1 }, 'platform_audit_site_settings'],
+  ['RLS-100', 'audit/platform staff can view audit rows', 'platformAdmin', 'select count(*) from public.platform_audit_events;', { kind: 'scalar', value: 0 }, 'platform_audit_select_staff'],
+  ['RLS-101', 'audit/ordinary user cannot view audit rows', 'worker', 'select count(*) from public.platform_audit_events;', { kind: 'scalar', value: 0 }, 'platform_audit_select_staff'],
+  ['RLS-102', 'audit/org admin cannot view audit rows', 'orgAdmin', 'select count(*) from public.platform_audit_events;', { kind: 'scalar', value: 0 }, 'platform_audit_select_staff'],
+  ['RLS-103', 'audit/suspended platform staff cannot view audit rows', 'suspendedStaff', 'select count(*) from public.platform_audit_events;', { kind: 'scalar', value: 0 }, 'platform_audit_select_staff'],
+  ['RLS-104', 'audit/platform staff cannot forge audit row', 'platformAdmin', "insert into public.platform_audit_events (action, target_table) values ('rls.forge','platform_audit_events') returning action;", { kind: 'error' }, 'platform_audit_append_only'],
+  ['RLS-105', 'audit/platform staff cannot update audit row', 'platformAdmin', "update public.platform_audit_events set action = 'rls.tamper' returning id;", { kind: 'error' }, 'platform_audit_append_only'],
+  ['RLS-106', 'audit/platform staff cannot delete audit row', 'platformAdmin', "delete from public.platform_audit_events returning id;", { kind: 'error' }, 'platform_audit_append_only'],
+  ['RLS-107', 'audit/project hide logged', 'platformOwner', "update public.projects set is_public = false where id = 9102; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and action = 'project.hide' and target_table = 'projects' and target_record_id = '9102' and after_state @> '{\"is_public\":false}'::jsonb;", { kind: 'scalar', value: 1 }, 'platform_audit_project_hide'],
+  ['RLS-108', 'audit/project claim rejection logged', 'platformOwner', "update public.project_claims set status = 'rejected' where id = 9103; select count(*) from public.platform_audit_events where actor_profile_id = auth.uid() and action = 'project_claim.reject' and target_table = 'project_claims' and target_record_id = '9103' and after_state @> '{\"status\":\"rejected\"}'::jsonb;", { kind: 'scalar', value: 1 }, 'platform_audit_claim_reject'],
 ]
 
 function main() {
