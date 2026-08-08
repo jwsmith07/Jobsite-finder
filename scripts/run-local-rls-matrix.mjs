@@ -18,6 +18,7 @@ const ids = {
   platformAdmin: '10000000-0000-0000-0000-000000000012',
   otherOwner: '10000000-0000-0000-0000-000000000013',
   companyCreator: '10000000-0000-0000-0000-000000000014',
+  multiOrg: '10000000-0000-0000-0000-000000000015',
 }
 
 const actors = {
@@ -35,6 +36,7 @@ const actors = {
   unrelated: { role: 'authenticated', sub: ids.unrelated },
   platformAdmin: { role: 'authenticated', sub: ids.platformAdmin },
   service: { role: 'service_role', sub: ids.platformAdmin },
+  multiOrg: { role: 'authenticated', sub: ids.multiOrg },
 }
 
 function psql(sql) {
@@ -172,7 +174,8 @@ values
   (${sqlString(ids.unrelated)}, 'authenticated', 'authenticated', '${marker}+unrelated@example.test', now(), now(), now()),
   (${sqlString(ids.platformAdmin)}, 'authenticated', 'authenticated', '${marker}+platformadmin@example.test', now(), now(), now()),
   (${sqlString(ids.otherOwner)}, 'authenticated', 'authenticated', '${marker}+otherowner@example.test', now(), now(), now()),
-  (${sqlString(ids.companyCreator)}, 'authenticated', 'authenticated', '${marker}+creator@example.test', now(), now(), now());
+  (${sqlString(ids.companyCreator)}, 'authenticated', 'authenticated', '${marker}+creator@example.test', now(), now(), now()),
+  (${sqlString(ids.multiOrg)}, 'authenticated', 'authenticated', '${marker}+multiorg@example.test', now(), now(), now());
 
 insert into public.profiles (id, email, full_name, role)
 values
@@ -189,7 +192,8 @@ values
   (${sqlString(ids.unrelated)}, '${marker}+unrelated@example.test', 'RLS Unrelated', 'worker'),
   (${sqlString(ids.platformAdmin)}, '${marker}+platformadmin@example.test', 'RLS Platform Admin', 'admin'),
   (${sqlString(ids.otherOwner)}, '${marker}+otherowner@example.test', 'RLS Other Owner', 'gc'),
-  (${sqlString(ids.companyCreator)}, '${marker}+creator@example.test', 'RLS Company Creator', 'gc');
+  (${sqlString(ids.companyCreator)}, '${marker}+creator@example.test', 'RLS Company Creator', 'gc'),
+  (${sqlString(ids.multiOrg)}, '${marker}+multiorg@example.test', 'RLS Multi Org', 'gc');
 
 insert into public.worker_profiles (id, profile_id, trade, experience_years, city, resume_url, bio, talent_visibility)
 values
@@ -216,7 +220,7 @@ insert into public.project_claims (id, project_id, company_profile_id, claim_typ
 values
   (9101, 9101, 9102, 'gc', 'approved', 'gc', true),
   (9102, 9102, 9103, 'gc', 'approved', 'gc', true),
-  (9103, 9101, 9101, 'gc', 'pending', 'gc', false);
+  (9103, 9101, 9101, 'gc', 'approved', 'gc', false);
 
 insert into public.job_posts (id, jobsite_id, project_id, company_profile_id, title, trade, status, experience_level)
 values
@@ -245,7 +249,9 @@ values
   (9105, 9101, ${sqlString(ids.invited)}, 'member', 'invited', null),
   (9106, 9101, ${sqlString(ids.suspended)}, 'admin', 'suspended', now()),
   (9107, 9101, ${sqlString(ids.removed)}, 'admin', 'removed', now()),
-  (9108, 9102, ${sqlString(ids.otherOwner)}, 'owner', 'active', now());
+  (9108, 9102, ${sqlString(ids.otherOwner)}, 'owner', 'active', now()),
+  (9109, 9101, ${sqlString(ids.multiOrg)}, 'hiring_manager', 'active', now()),
+  (9110, 9102, ${sqlString(ids.multiOrg)}, 'hiring_manager', 'active', now());
 
 insert into public.membership_invitations (id, organization_id, email, role, status, token_hash, invited_by, expires_at)
 values ('20000000-0000-0000-0000-000000009101', 9101, '${marker}+new@example.test', 'member', 'invited', '${marker}_token', ${sqlString(ids.orgAdmin)}, now() + interval '7 days');
@@ -253,7 +259,8 @@ values ('20000000-0000-0000-0000-000000009101', 9101, '${marker}+new@example.tes
 insert into public.gc_candidate_pipeline (id, gc_company_id, project_id, worker_profile_id, stage, notes)
 values
   (9101, 9102, 9101, 9101, 'saved', '${marker} org pipeline'),
-  (9102, 9101, 9101, 9101, 'saved', '${marker} legacy pipeline');
+  (9102, 9101, 9101, 9101, 'saved', '${marker} legacy pipeline'),
+  (9103, 9103, 9102, 9102, 'saved', '${marker} other org pipeline');
 
 insert into public.gc_subcontractor_assignments (id, gc_company_id, subcontractor_company_id, jobsite_id, status)
 values ('30000000-0000-0000-0000-000000009101', 9102, 9101, 9101, 'pending');
@@ -268,10 +275,10 @@ set session_replication_role = DEFAULT;
 const cleanupSql = `
 set session_replication_role = replica;
 delete from public.membership_invitations where email like '${marker}%';
-delete from public.organization_memberships where id between 9101 and 9108;
+delete from public.organization_memberships where id between 9101 and 9110;
 delete from public.organizations where id in (9101, 9102);
 delete from public.gc_subcontractor_assignments where jobsite_id in (9101, 9102);
-delete from public.gc_candidate_pipeline where id in (9101, 9102);
+delete from public.gc_candidate_pipeline where id in (9101, 9102, 9103);
 delete from public.saved_jobs where job_post_id in (9101, 9102);
 delete from public.worker_certifications where id = 9101;
 delete from public.applications where id in (9101, 9102);
@@ -331,12 +338,23 @@ const tests = [
   ['RLS-048', 'applications/hiring manager update status', 'hiring', "update public.applications set status = 'reviewing', company_notes = 'ok' where id = 9101 returning status;", { kind: 'scalar', value: 'reviewing' }, 'applications_update_company'],
   ['RLS-049', 'applications/member update denied', 'member', "update public.applications set status = 'reviewing' where id = 9101 returning status;", { kind: 'deny' }, 'applications_update_company'],
 
-  ['RLS-050', 'pipeline/org owner select own org', 'owner', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'unresolved' }, 'legacy gc_candidate_pipeline_select_own_company', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-050', 'pipeline/org owner select own org', 'owner', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 1 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
   ['RLS-050A', 'pipeline/legacy owner select own company', 'legacy', 'select count(*) from public.gc_candidate_pipeline where id = 9102;', { kind: 'scalar', value: 1 }, 'legacy gc_candidate_pipeline_select_own_company', 'select count(*) from public.gc_candidate_pipeline where id = 9102;'],
-  ['RLS-050B', 'pipeline/org admin select own org', 'orgAdmin', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'unresolved' }, 'legacy gc_candidate_pipeline_select_own_company', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
-  ['RLS-050C', 'pipeline/hiring manager select own org', 'hiring', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'unresolved' }, 'legacy gc_candidate_pipeline_select_own_company', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
-  ['RLS-050D', 'pipeline/member select own org', 'member', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'unresolved' }, 'legacy gc_candidate_pipeline_select_own_company', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
-  ['RLS-051', 'pipeline/legacy owner insert own', 'legacy', "insert into public.gc_candidate_pipeline (gc_company_id, project_id, worker_profile_id, stage) values (9101,9102,9102,'saved') returning gc_company_id;", { kind: 'scalar', value: 9101 }, 'legacy gc_candidate_pipeline_insert_own_company'],
+  ['RLS-050B', 'pipeline/org admin select own org', 'orgAdmin', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 1 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-050C', 'pipeline/hiring manager select own org', 'hiring', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 1 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-050D', 'pipeline/member select own org denied', 'member', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 0 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-051', 'pipeline/legacy owner insert own', 'legacy', "insert into public.gc_candidate_pipeline (gc_company_id, project_id, worker_profile_id, stage) values (9101,9101,9102,'saved') returning gc_company_id;", { kind: 'scalar', value: 9101 }, 'legacy gc_candidate_pipeline_insert_own_company'],
+  ['RLS-051A', 'pipeline/org owner insert own org', 'owner', "insert into public.gc_candidate_pipeline (gc_company_id, project_id, worker_profile_id, stage) values (9102,9101,9102,'saved') returning gc_company_id;", { kind: 'scalar', value: 9102 }, 'candidate_pipeline_org_hiring_roles'],
+  ['RLS-051B', 'pipeline/org admin update own org', 'orgAdmin', "update public.gc_candidate_pipeline set stage = 'contacted' where id = 9101 returning stage;", { kind: 'scalar', value: 'contacted' }, 'candidate_pipeline_org_hiring_roles'],
+  ['RLS-051C', 'pipeline/hiring manager delete own org', 'hiring', 'delete from public.gc_candidate_pipeline where id = 9101 returning id;', { kind: 'scalar', value: 9101 }, 'candidate_pipeline_org_hiring_roles'],
+  ['RLS-051D', 'pipeline/member update denied', 'member', "update public.gc_candidate_pipeline set stage = 'blocked' where id = 9101 returning id;", { kind: 'deny' }, 'candidate_pipeline_org_hiring_roles'],
+  ['RLS-051E', 'pipeline/suspended admin select denied', 'suspended', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 0 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-051F', 'pipeline/removed admin select denied', 'removed', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 0 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-051G', 'pipeline/invited member select denied', 'invited', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 0 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-051H', 'pipeline/unrelated worker select denied', 'worker', 'select count(*) from public.gc_candidate_pipeline where id = 9101;', { kind: 'scalar', value: 0 }, 'candidate_pipeline_org_hiring_roles', 'select count(*) from public.gc_candidate_pipeline where id = 9101;'],
+  ['RLS-051I', 'pipeline/cross org insert denied', 'owner', "insert into public.gc_candidate_pipeline (gc_company_id, project_id, worker_profile_id, stage) values (9102,9102,9102,'saved') returning gc_company_id;", { kind: 'error' }, 'candidate_pipeline_org_hiring_roles'],
+  ['RLS-051J', 'pipeline/multi-org select both orgs', 'multiOrg', 'select count(*) from public.gc_candidate_pipeline where id in (9101, 9103);', { kind: 'scalar', value: 2 }, 'candidate_pipeline_org_hiring_roles', 'select (count(*) = 2)::int from public.gc_candidate_pipeline where id in (9101, 9103);'],
+  ['RLS-051K', 'pipeline/member self-elevation still denied', 'member', "update public.organization_memberships set role = 'hiring_manager' where profile_id = auth.uid() returning id;", { kind: 'deny' }, 'organization_memberships_update_owner_admin_or_accept + guard'],
   ['RLS-052', 'assignments/gc owner select', 'owner', 'select count(*) from public.gc_subcontractor_assignments where jobsite_id = 9101;', { kind: 'scalar', value: 1 }, 'gc_subcontractor_assignments_gc_select'],
   ['RLS-053', 'assignments/unrelated select denied', 'unrelated', 'select count(*) from public.gc_subcontractor_assignments where jobsite_id = 9101;', { kind: 'deny' }, 'assignment policies'],
 

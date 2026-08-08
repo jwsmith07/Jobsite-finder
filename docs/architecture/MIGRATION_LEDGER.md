@@ -41,6 +41,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 033_organization_membership_authorization_foundation.sql
 034_database_privilege_hardening.sql
 035_rls_behavioral_blocker_corrections.sql
+036_candidate_pipeline_organization_authorization.sql
 ```
 
 ## Known Numbering Conflict
@@ -108,6 +109,10 @@ The migration restores narrow RLS-governed client DML grants, grants sequence `U
 Validated harness rerun then confirmed SQLSTATE `42P17` recursion in the remaining `worker_profiles` and `applications` policy graph: `worker_profiles`/`worker_certifications` company-applicant policies read `applications`, while `applications` own-worker policies read `worker_profiles`. `035` now replaces those cross-table policy subqueries with fixed-search-path `SECURITY DEFINER` helpers that return only ownership or visibility facts. The same correction updates `can_manage_project_image(bigint, bigint)` and `gc_can_manage_assignment_jobsite(bigint, bigint)` so active organization Owner/Admin/Hiring Manager membership can authorize the action while preserving deliberate legacy company-owner compatibility. Candidate-pipeline organization-role access remains intentionally unresolved and unchanged.
 
 The final decided RLS matrix failure was `RLS-048`: Hiring Manager application status updates passed the organization-membership UPDATE policy but returned no row because `applications_select_company` still used legacy-only `company_profiles.profile_id = auth.uid()` visibility. `035` replaces that SELECT policy with `current_user_can_manage_applications_for_job(bigint)`, which preserves legacy owner visibility and adds active organization Owner/Admin/Hiring Manager visibility for the job post's hiring company.
+
+## Candidate Pipeline Organization Authorization
+
+`036_candidate_pipeline_organization_authorization.sql` implements the approved candidate-pipeline role model. Active organization Owner, Admin, and Hiring Manager memberships may view and manage candidate-pipeline records only when their company has the approved GC/general-contractor claim for the record's project. Ordinary Members, invited/suspended/removed memberships, unrelated organizations, and workers remain denied. Temporary legacy company-owner compatibility is preserved through `company_profiles.profile_id = auth.uid()` for the same claimed company/project relationship.
 
 ## Mission 1 Draft Migration
 
