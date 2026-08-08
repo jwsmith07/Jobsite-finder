@@ -85,6 +85,12 @@ public.run_canada_project_import
 - The historical SQL was preserved at `supabase/manual/029_province_project_import_utilities.sql`.
 - It is excluded from generated local migration artifacts and must not be included in automatic migration replay.
 
+## Import Function Return-Type Rebuild
+
+Clean local replay then reached `031_project_eligibility_rules.sql` and failed with SQLSTATE `42P13`: `CREATE OR REPLACE FUNCTION` cannot change the OUT-parameter structure of a `RETURNS TABLE` function. `030_canada_import_duplicate_protection.sql` creates `public.run_canada_project_import(text, text, text)`, and `031` intentionally upgrades the return structure to include eligibility counts and exclusion reasons.
+
+Repair: `031` explicitly drops `public.run_canada_project_import(text, text, text)` immediately before recreating the upgraded function, without `CASCADE`. Repository analysis found no dependent schema objects, grants, comments, or application RPC calls requiring restoration after the drop/recreate.
+
 ## Mission 1 Draft Migration
 
 `032_role_hardening_resume_privacy.sql` is a draft-forward migration. It must not be applied until reviewed and explicitly approved.

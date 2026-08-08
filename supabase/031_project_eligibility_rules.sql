@@ -100,6 +100,8 @@ as $$
   );
 $$;
 
+drop function if exists public.run_canada_project_import(text, text, text);
+
 create or replace function public.run_canada_project_import(
   p_staging_table text default 'jobsite_project_import_staging',
   p_source_name text default 'government_import',
