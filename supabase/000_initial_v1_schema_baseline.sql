@@ -93,7 +93,9 @@ create table if not exists public.job_posts (
   status text default 'open',
   created_at timestamptz default now(),
   expires_at date,
-  project_id bigint references public.projects(id) on delete cascade
+  project_id bigint references public.projects(id) on delete cascade,
+  positions_count integer default 1,
+  experience_level text
 );
 
 create table if not exists public.applications (

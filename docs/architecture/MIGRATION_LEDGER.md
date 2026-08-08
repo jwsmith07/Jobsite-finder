@@ -93,3 +93,5 @@ Mission 2 records `company_profiles.id` as `bigint/int8` for compatibility becau
 `000_initial_v1_schema_baseline.sql` is a reconstructed schema-only baseline for local disposable testing. It creates the V1 foundation that predates the tracked migration history: `profiles`, `worker_profiles`, `company_profiles`, `projects`, `jobsites`, `job_posts`, `applications`, and `project_claims`.
 
 It is derived from a schema-only dump of the existing Supabase project and excludes table data, auth users, storage object records, storage internals, and objects introduced by migrations `001` through `033`. It must run before `001_worker_profiles_columns.sql` only in local/disposable reconstruction.
+
+The baseline includes `job_posts.positions_count integer default 1` and `job_posts.experience_level text` because the production schema defines both fields, application code treats them as base job fields, and no tracked migration creates them. Migration `015_structured_job_posts.sql` expects `experience_level` to already exist when creating `job_posts_trade_experience_status_idx`.
