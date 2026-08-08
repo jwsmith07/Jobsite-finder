@@ -35,7 +35,6 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 027_privacy_security_hardening.sql
 028_project_participation_workflow.sql
 028_site_settings_map_provider_policy.sql
-029_province_project_import_utilities.sql
 030_canada_import_duplicate_protection.sql
 031_project_eligibility_rules.sql
 032_role_hardening_resume_privacy.sql
@@ -75,6 +74,16 @@ public.guard_project_contractor_location_update
 public.is_major_project
 public.run_canada_project_import
 ```
+
+## Manual Import Utility Reclassification
+
+`029_province_project_import_utilities.sql` was originally tracked with schema migrations, but a clean local replay failed at that file with SQLSTATE `42P01` because `jobsite_project_import_staging` does not exist. Review confirmed it was a manual data-import utility, not a permanent schema migration:
+
+- It depends on an externally created staging relation, with `public.jobsite_project_import_staging` only serving as the documented example name.
+- It also references eligibility helper functions introduced later by `031_project_eligibility_rules.sql`.
+- No permanent staging table was added to `000_initial_v1_schema_baseline.sql`.
+- The historical SQL was preserved at `supabase/manual/029_province_project_import_utilities.sql`.
+- It is excluded from generated local migration artifacts and must not be included in automatic migration replay.
 
 ## Mission 1 Draft Migration
 

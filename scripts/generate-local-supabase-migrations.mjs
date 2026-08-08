@@ -40,7 +40,6 @@ const manifest = [
   ['20260807002700', '027_privacy_security_hardening.sql'],
   ['20260807002800', '028_project_participation_workflow.sql'],
   ['20260807002810', '028_site_settings_map_provider_policy.sql'],
-  ['20260807002900', '029_province_project_import_utilities.sql'],
   ['20260807003000', '030_canada_import_duplicate_protection.sql'],
   ['20260807003100', '031_project_eligibility_rules.sql'],
   ['20260807003200', '032_role_hardening_resume_privacy.sql'],

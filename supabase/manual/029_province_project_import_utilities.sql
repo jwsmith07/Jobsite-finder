@@ -1,3 +1,14 @@
+-- MANUAL IMPORT UTILITY ONLY.
+-- Do not include this file in automatic migration replay.
+--
+-- Historical source: supabase/029_province_project_import_utilities.sql.
+-- This utility requires the operator to create a staging relation before use.
+-- The default example staging relation is public.jobsite_project_import_staging.
+-- The staging relation is not part of the permanent application schema.
+-- Use this only after migrations 030 and 031 have established the permanent
+-- import reporting and eligibility functions.
+-- Review and replace the staging-table name where required before execution.
+
 -- Province project import utilities for Jobsite Finder.
 -- Replace jobsite_project_import_staging with your staging table name if needed.
 -- Expected staging columns match Canada_Master_Import_Template.csv.

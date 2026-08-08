@@ -25,7 +25,7 @@ Do not import directly into `projects` until preview counts, coordinate counts, 
 
 ## 3. Run Safety Checks
 
-Use [supabase/029_province_project_import_utilities.sql](supabase/029_province_project_import_utilities.sql) for quick preview checks:
+Use [supabase/manual/029_province_project_import_utilities.sql](supabase/manual/029_province_project_import_utilities.sql) for quick preview checks. This is a manual import utility and must never be included in automatic migration replay:
 
 - Preview imported province counts
 - Count valid coordinates
@@ -33,7 +33,7 @@ Use [supabase/029_province_project_import_utilities.sql](supabase/029_province_p
 - Count likely duplicates inside the import file
 - Count likely duplicates against existing `projects`
 
-Use [supabase/030_canada_import_duplicate_protection.sql](supabase/030_canada_import_duplicate_protection.sql) for the actual import. It protects existing project IDs, skips exact duplicates, flags likely coordinate/name duplicates for review, and writes an import report.
+Use [supabase/030_canada_import_duplicate_protection.sql](supabase/030_canada_import_duplicate_protection.sql) for the actual import after migrations `030` and `031` have established the permanent import and eligibility functions. It protects existing project IDs, skips exact duplicates, flags likely coordinate/name duplicates for review, and writes an import report.
 
 ## 4. Publish
 
