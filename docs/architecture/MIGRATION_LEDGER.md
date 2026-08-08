@@ -40,6 +40,7 @@ Status: Mission 1 baseline. Previously applied migrations are not renumbered, de
 032_role_hardening_resume_privacy.sql
 033_organization_membership_authorization_foundation.sql
 034_database_privilege_hardening.sql
+035_rls_behavioral_blocker_corrections.sql
 ```
 
 ## Known Numbering Conflict
@@ -97,6 +98,16 @@ Repair: `031` explicitly drops `public.run_canada_project_import(text, text, tex
 `034_database_privilege_hardening.sql` is a forward-only privilege hardening migration created after clean schema reconstruction exposed broad client grants. It revokes `TRUNCATE`, `TRIGGER`, and `REFERENCES` from `PUBLIC`, `anon`, and `authenticated` on application-owned public tables because `TRUNCATE` bypasses RLS. It revokes client sequence `UPDATE`, protects operational import/quarantine tables with RLS enabled and no client policies, and revokes client execution of the manual Canada import RPC and trigger-only functions.
 
 This migration deliberately does not alter legacy company-ownership RLS policies. The transition from `company_profiles.profile_id` authority to organization membership requires separate behavioral RLS testing and authorization work.
+
+## RLS Behavioral Blocker Corrections
+
+`035_rls_behavioral_blocker_corrections.sql` is a forward-only corrective migration for the first local behavioral RLS matrix. The matrix found that legitimate positive cases could not reach RLS because ordinary client DML privileges were missing after hardening, and that recursive `project_claims` policy paths caused PostgreSQL recursion errors.
+
+The migration restores narrow RLS-governed client DML grants, grants sequence `USAGE` only for supported authenticated inserts, and replaces recursive project-claim checks with fixed-search-path `SECURITY DEFINER` boolean helpers. It does not restore `TRUNCATE`, `TRIGGER`, `REFERENCES`, sequence `UPDATE`, operational-table access, import RPC client access, or change the broader legacy-to-organization transition model.
+
+Validated harness rerun then confirmed SQLSTATE `42P17` recursion in the remaining `worker_profiles` and `applications` policy graph: `worker_profiles`/`worker_certifications` company-applicant policies read `applications`, while `applications` own-worker policies read `worker_profiles`. `035` now replaces those cross-table policy subqueries with fixed-search-path `SECURITY DEFINER` helpers that return only ownership or visibility facts. The same correction updates `can_manage_project_image(bigint, bigint)` and `gc_can_manage_assignment_jobsite(bigint, bigint)` so active organization Owner/Admin/Hiring Manager membership can authorize the action while preserving deliberate legacy company-owner compatibility. Candidate-pipeline organization-role access remains intentionally unresolved and unchanged.
+
+The final decided RLS matrix failure was `RLS-048`: Hiring Manager application status updates passed the organization-membership UPDATE policy but returned no row because `applications_select_company` still used legacy-only `company_profiles.profile_id = auth.uid()` visibility. `035` replaces that SELECT policy with `current_user_can_manage_applications_for_job(bigint)`, which preserves legacy owner visibility and adds active organization Owner/Admin/Hiring Manager visibility for the job post's hiring company.
 
 ## Mission 1 Draft Migration
 
