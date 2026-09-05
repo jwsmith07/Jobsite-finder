@@ -283,27 +283,6 @@ export default function UnderConstructionPage() {
         </div>
       </section>
 
-      <section className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <SectionHeader
-            title="See How Jobsite Finder Works"
-            text="Find active jobsites. See who's building them. Find opportunities and apply."
-          />
-          <div className="mx-auto mt-10 w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
-            <div className="aspect-video w-full">
-              <iframe
-                src="https://scrimba.com/explain/guide0vr3jngj4"
-                title="Jobsite Finder Explainer"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                loading="lazy"
-                className="h-full w-full border-0"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       <main id="learn-more">
         <section className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -320,6 +299,23 @@ export default function UnderConstructionPage() {
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <SectionHeader title="How Jobsite Finder Works" text="One platform for the construction workforce, contractors, and industry relationships." />
+            <div className="mx-auto mt-10 max-w-3xl text-center">
+              <h3 className="text-2xl font-black text-white">See How Jobsite Finder Works</h3>
+              <p className="mt-3 text-lg text-slate-300">
+                Find active jobsites. See who's building them. Find opportunities and apply.
+              </p>
+            </div>
+            <div className="mx-auto mt-8 aspect-video w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
+              <iframe
+                src="https://scrimba.com/explain/guide0vr3jngj4"
+                title="Jobsite Finder Explainer"
+                allow="autoplay; fullscreen; clipboard-write"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="h-full w-full border-0"
+              />
+            </div>
             <div className="mt-12 grid gap-5 lg:grid-cols-3">
               {workCards.map(({ icon: Icon, title, points }) => (
                 <div key={title} className="rounded-lg border border-slate-700 bg-slate-900 p-7">
