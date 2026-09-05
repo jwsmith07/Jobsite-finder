@@ -313,17 +313,6 @@ export default function UnderConstructionPage() {
                 className="h-full w-full"
               />
             </div>
-            <div className="mx-auto mt-4 flex max-w-[900px] justify-center">
-              <a
-                href={jobsiteExplainerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-amber-300 hover:text-amber-200"
-              >
-                Watch explainer on Scrimba
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </div>
             <div className="mt-12 grid gap-5 lg:grid-cols-3">
               {workCards.map(({ icon: Icon, title, points }) => (
                 <div key={title} className="rounded-lg border border-slate-700 bg-slate-900 p-7">
