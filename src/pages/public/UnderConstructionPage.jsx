@@ -283,6 +283,27 @@ export default function UnderConstructionPage() {
         </div>
       </section>
 
+      <section className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            title="See How Jobsite Finder Works"
+            text="Find active jobsites. See who's building them. Find opportunities and apply."
+          />
+          <div className="mx-auto mt-10 w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
+            <div className="aspect-video w-full">
+              <iframe
+                src="https://scrimba.com/explain/guide0vr3jngj4"
+                title="Jobsite Finder Explainer"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                loading="lazy"
+                className="h-full w-full border-0"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <main id="learn-more">
         <section className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
