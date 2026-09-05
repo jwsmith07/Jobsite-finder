@@ -26,6 +26,7 @@ const roleOptions = [
 ]
 
 const constructionSurveyUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf_BG5toMR2Dd-GadmGHgzyix_meRQC7-f0FmGnRYOGvxyH8g/viewform'
+const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0vr3jngj4'
 
 const stats = [
   { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
@@ -299,22 +300,29 @@ export default function UnderConstructionPage() {
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <SectionHeader title="How Jobsite Finder Works" text="One platform for the construction workforce, contractors, and industry relationships." />
-            <div className="mx-auto mt-10 max-w-3xl text-center">
-              <h3 className="text-2xl font-black text-white">See How Jobsite Finder Works</h3>
-              <p className="mt-3 text-lg text-slate-300">
-                Find active jobsites. See who's building them. Find opportunities and apply.
-              </p>
-            </div>
-            <div className="mx-auto mt-8 aspect-video w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
+            <div className="mx-auto mt-10 aspect-video w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
               <iframe
-                src="https://scrimba.com/explain/guide0vr3jngj4"
+                src={jobsiteExplainerUrl}
                 title="Jobsite Finder Explainer"
-                allow="autoplay; fullscreen; clipboard-write"
+                width="800"
+                height="450"
+                style={{ border: 0 }}
+                allow="autoplay; fullscreen"
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                className="h-full w-full border-0"
+                className="h-full w-full"
               />
+            </div>
+            <div className="mx-auto mt-4 flex max-w-[900px] justify-center">
+              <a
+                href={jobsiteExplainerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-amber-300 hover:text-amber-200"
+              >
+                Watch explainer on Scrimba
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
             </div>
             <div className="mt-12 grid gap-5 lg:grid-cols-3">
               {workCards.map(({ icon: Icon, title, points }) => (
