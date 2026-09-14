@@ -26,8 +26,7 @@ const roleOptions = [
 ]
 
 const constructionSurveyUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf_BG5toMR2Dd-GadmGHgzyix_meRQC7-f0FmGnRYOGvxyH8g/viewform'
-const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0vr3jngj4'
-const contractorExplainerUrl = 'https://scrimba.com/explain/guide0dss26rsi'
+const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0gg1tfr2c'
 
 const stats = [
   { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
@@ -308,29 +307,8 @@ export default function UnderConstructionPage() {
                 width="800"
                 height="450"
                 style={{ border: 0 }}
-                allow="autoplay 'none'; fullscreen"
                 allowFullScreen
-                loading="lazy"
-                className="h-full w-full"
-              />
-            </div>
-            <div className="mx-auto mt-16 max-w-3xl text-center">
-              <h3 className="text-2xl font-black text-white sm:text-3xl">Jobsite Finder for Contractors</h3>
-              <p className="mt-4 text-lg leading-8 text-slate-300">
-                See how general contractors and subcontractors can use Jobsite Finder to claim projects, recruit around active jobsites, post opportunities and manage applicants.
-              </p>
-            </div>
-            <div className="mx-auto mt-8 aspect-video w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
-              <iframe
-                src={contractorExplainerUrl}
-                title="Jobsite Finder for Contractors Explainer"
-                width="800"
-                height="450"
-                style={{ border: 0 }}
-                allow="autoplay 'none'; fullscreen"
-                allowFullScreen
-                loading="lazy"
-                className="h-full w-full"
+                className="block h-full w-full"
               />
             </div>
             <div className="mt-12 grid gap-5 lg:grid-cols-3">
