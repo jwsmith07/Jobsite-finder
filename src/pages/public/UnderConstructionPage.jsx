@@ -26,7 +26,7 @@ const roleOptions = [
 ]
 
 const constructionSurveyUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf_BG5toMR2Dd-GadmGHgzyix_meRQC7-f0FmGnRYOGvxyH8g/viewform'
-const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0gg1tfr2c'
+const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0o93ighc7'
 
 const stats = [
   { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
@@ -300,7 +300,7 @@ export default function UnderConstructionPage() {
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <SectionHeader title="How Jobsite Finder Works" text="One platform for the construction workforce, contractors, and industry relationships." />
-            <div className="mx-auto mt-10 aspect-video w-full max-w-[900px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
+            <div className="mx-auto mt-10 aspect-video w-full max-w-[800px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
               <iframe
                 src={jobsiteExplainerUrl}
                 title="Jobsite Finder Explainer"
