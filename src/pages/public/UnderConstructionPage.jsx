@@ -376,15 +376,40 @@ export default function UnderConstructionPage() {
         <section id="pricing" aria-labelledby="pricing-heading" className="border-b border-slate-800 px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-5xl">
             <div className="mx-auto max-w-3xl text-center">
-              <h2 id="pricing-heading" className="text-3xl font-black text-white sm:text-4xl">Simple pricing for contractors</h2>
-              <p className="mt-4 text-lg font-bold text-amber-300">Workers are always free.</p>
-              <p className="mt-4 text-lg leading-8 text-slate-300">
-                Contractors get a 30-day free trial to set up their company profile, add jobsites, post jobs, and start hiring.
+              <h2 id="pricing-heading" className="text-3xl font-black text-white sm:text-4xl">Simple pricing</h2>
+            </div>
+
+            <div className="mt-10 rounded-lg border border-amber-300/35 bg-amber-300/10 p-6 shadow-2xl shadow-black/20 sm:p-8">
+              <h3 className="text-2xl font-black text-white sm:text-3xl">Workers</h3>
+              <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">Always free</p>
+              <p className="mt-6 text-lg text-slate-200">Jobsite Finder is free for workers to:</p>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                {[
+                  'Discover active jobsites',
+                  'Browse construction jobs',
+                  'Create a worker profile',
+                  'Build and share a resume',
+                  'Apply for jobs',
+                  'Connect with opportunities across Canada',
+                ].map((point) => (
+                  <li key={point} className="flex gap-3 text-slate-200">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-8 border-t border-amber-300/20 pt-6 text-lg font-bold text-white">
+                Workers never pay to search for work or apply for jobs.
               </p>
             </div>
 
-            <div className="mt-10 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/20 sm:p-8">
-              <div className="grid gap-8 md:grid-cols-2">
+            <div className="mt-8 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/20 sm:p-8">
+              <h3 className="text-2xl font-black text-white sm:text-3xl">Contractors</h3>
+              <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">30-day free trial</p>
+              <p className="mt-6 text-lg leading-8 text-slate-300">
+                Set up your company profile, add jobsites, post jobs, and start hiring.
+              </p>
+              <div className="mt-8 grid gap-8 md:grid-cols-2">
                 <div>
                   <p className="text-2xl font-black text-white sm:text-3xl">$99 CAD per active jobsite per month</p>
                   <ul className="mt-6 space-y-3">
@@ -402,14 +427,13 @@ export default function UnderConstructionPage() {
                   </ul>
                 </div>
                 <div className="rounded-lg border border-amber-300/35 bg-amber-300/10 p-5 sm:p-6">
-                  <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-amber-200">Founding annual offer</h3>
+                  <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-amber-200">Founding annual offer</h4>
                   <p className="mt-3 text-2xl font-black text-white">$999 CAD per jobsite for the first year</p>
-                  <p className="mt-4 text-base leading-7 text-slate-200">This founding offer is available for the first paid year.</p>
                 </div>
               </div>
 
               <p className="mt-8 border-t border-slate-700 pt-6 text-base leading-7 text-slate-300">
-                After your 30-day trial, your company profile remains free. To continue posting jobs, reviewing applications, and hiring through Jobsite Finder, you will need an active paid jobsite plan.
+                After the 30-day trial, the company profile remains free. Hiring tools require an active paid jobsite plan.
               </p>
               <p className="mt-6 text-sm leading-6 text-slate-400">
                 Pricing preview for launch. Payment is not yet available. Signing up does not activate a trial or collect payment. Public signup is unavailable while the site is under construction.
