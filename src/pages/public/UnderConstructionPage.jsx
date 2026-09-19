@@ -383,7 +383,7 @@ export default function UnderConstructionPage() {
             </div>
 
             <div className="mt-8 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/20 sm:p-8">
-              <h3 className="text-2xl font-black text-white sm:text-3xl">Contractors</h3>
+              <h3 className="text-2xl font-black text-white sm:text-3xl">General &amp; Sub Contractors</h3>
               <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">30-day free trial</p>
               <p className="mt-6 text-lg leading-8 text-slate-300">
                 Set up your company profile, add jobsites, post jobs, and start hiring.
