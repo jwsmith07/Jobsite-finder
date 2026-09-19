@@ -359,7 +359,7 @@ export default function UnderConstructionPage() {
             </div>
 
             <div className="mt-10 rounded-lg border border-amber-300/35 bg-amber-300/10 p-6 shadow-2xl shadow-black/20 sm:p-8">
-              <h3 className="text-2xl font-black text-white sm:text-3xl">Workers</h3>
+              <h3 className="text-2xl font-black text-white sm:text-3xl">Trades Workers</h3>
               <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">Always free</p>
               <p className="mt-6 text-lg text-slate-200">Jobsite Finder is free for workers to:</p>
               <ul className="mt-6 grid gap-3 sm:grid-cols-2">
