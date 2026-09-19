@@ -27,6 +27,7 @@ const roleOptions = [
 
 const constructionSurveyUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf_BG5toMR2Dd-GadmGHgzyix_meRQC7-f0FmGnRYOGvxyH8g/viewform'
 const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0o93ighc7'
+const contactEmail = 'info@jobsitefinder.ca'
 
 const stats = [
   { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
@@ -534,7 +535,7 @@ export default function UnderConstructionPage() {
                 We are currently exploring partnerships, industry collaborations, and investment opportunities across Canada.
               </p>
             </div>
-            <a href="mailto:joseph@jobsitefinder.ca" className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 font-black text-slate-950 transition hover:bg-amber-300">
+            <a href={`mailto:${contactEmail}`} className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 font-black text-slate-950 transition hover:bg-amber-300">
               Contact Us
               <Mail className="h-5 w-5" aria-hidden="true" />
             </a>
@@ -557,6 +558,10 @@ export default function UnderConstructionPage() {
             <div>
               <p className="font-bold text-white">Jobsite Finder Technologies Inc.</p>
               <p className="mt-2">Built for the Trades. Powered by Real Jobsites.</p>
+              <a href={`mailto:${contactEmail}`} className="mt-4 inline-flex items-center gap-2 text-amber-300 underline underline-offset-4 transition hover:text-amber-200">
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                {contactEmail}
+              </a>
               <p className="mt-4">Copyright &copy; 2026 Jobsite Finder Technologies Inc.</p>
               <p>All Rights Reserved.</p>
             </div>
