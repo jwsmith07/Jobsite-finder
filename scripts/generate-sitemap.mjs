@@ -1,82 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
-import { writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-
-const SITE_URL = (process.env.VITE_SITE_URL || 'https://jobsitefinder.ca').replace(/\/+$/, '')
-
-const staticRoutes = [
-  '/',
-  '/about',
-  '/pricing',
-  '/contact',
-  '/jobsites',
-  '/faq',
-  '/community-guidelines',
-  '/privacy',
-  '/terms',
-  '/cookies',
-  '/refund-policy',
-  '/security',
-  '/accessibility',
-]
-
-function urlEntry(path, priority = '0.7', changefreq = 'weekly') {
-  return [
-    '  <url>',
-    `    <loc>${SITE_URL}${path}</loc>`,
-    `    <changefreq>${changefreq}</changefreq>`,
-    `    <priority>${priority}</priority>`,
-    '  </url>',
-  ].join('\n')
-}
-
-async function getDynamicRoutes() {
-  const url = process.env.VITE_SUPABASE_URL
-  const key = process.env.VITE_SUPABASE_ANON_KEY
-  if (!url || !key) return []
-
-  const supabase = createClient(url, key)
-  const routes = []
-
-  const { data: projects, error: projectsError } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('is_active', true)
-    .eq('is_public_project', true)
-    .eq('review_status', 'approved')
-    .eq('is_public', true)
-    .range(0, 4999)
-
-  if (!projectsError) {
-    for (const project of projects ?? []) routes.push(`/projects/${project.id}`)
-  }
-
-  const { data: companies, error: companiesError } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('verified', true)
-    .range(0, 4999)
-
-  if (!companiesError) {
-    for (const company of companies ?? []) routes.push(`/companies/${company.id}`)
-  }
-
-  return routes
-}
-
-const dynamicRoutes = await getDynamicRoutes().catch(() => [])
-const urls = [
-  ...staticRoutes.map((route) => urlEntry(route, route === '/' ? '1.0' : route === '/jobsites' ? '0.9' : '0.7')),
-  ...dynamicRoutes.map((route) => urlEntry(route, route.startsWith('/projects/') ? '0.8' : '0.6')),
-]
-
+﻿// Offline only: no environment files, credentials, database queries or submissions.
+// Default/build mode checks the reviewed sitemap; --write explicitly regenerates it.
+import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { PUBLIC_SITEMAP_ROUTES, canonicalUrl } from '../src/lib/seo.js'
+const destination = resolve('public/sitemap.xml')
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  ...urls,
+  ...PUBLIC_SITEMAP_ROUTES.map(route => `  <url>\n    <loc>${canonicalUrl(route)}</loc>\n  </url>`),
   '</urlset>',
   '',
 ].join('\n')
-
-writeFileSync(join(process.cwd(), 'public', 'sitemap.xml'), xml)
-console.log(`Generated sitemap.xml with ${urls.length} URLs.`)
+if (process.argv.includes('--write')) {
+  writeFileSync(destination, xml)
+  console.log(`Wrote ${PUBLIC_SITEMAP_ROUTES.length} reviewed public URLs to public/sitemap.xml (offline).`)
+} else {
+  const actual = readFileSync(destination, 'utf8').replace(/\r\n/g, '\n')
+  if (actual !== xml) {
+    console.error('Sitemap differs from reviewed public routes. Inspect changes, then run node scripts/generate-sitemap.mjs --write locally.')
+    process.exitCode = 1
+  } else console.log('Reviewed static sitemap check passed (no files written; no network access).')
+}

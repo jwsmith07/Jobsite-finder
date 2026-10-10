@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import ScrollToTop from '../components/layout/ScrollToTop'
@@ -9,11 +9,15 @@ import { useAuth } from '../hooks/useAuth'
 import PageMeta from '../components/ui/PageMeta'
 import { defaultDescription, organizationSchema, staticRouteMeta, websiteSchema } from '../lib/seo'
 import { MapProviderProvider } from '../components/map/MapProviderContext'
+import { revealClientRoot } from '../lib/marketingSnapshot'
 
 const maintenanceAllowedPrefixes = ['/under-construction', '/login', '/signin', '/admin', '/api']
+// Previously reviewed public legal/contact exception; no authentication changes.
+const maintenanceAllowedPages = new Set(['/privacy', '/terms', '/contact'])
 const devMaintenanceAllowedPrefixes = import.meta.env.DEV ? ['/maplibre-poc'] : []
 
 function isMaintenanceAllowed(pathname) {
+  if (maintenanceAllowedPages.has(pathname)) return true
   return [...maintenanceAllowedPrefixes, ...devMaintenanceAllowedPrefixes].some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   )
@@ -53,7 +57,13 @@ export default function App() {
     }
   }, [location.pathname])
 
-  if (maintenanceMode === null || authLoading) {
+  const initializing = maintenanceMode === null || authLoading
+  const maintenanceRedirect = maintenanceMode && !user && !maintenanceAllowed
+  useLayoutEffect(() => {
+    if (!initializing && !maintenanceRedirect) revealClientRoot()
+  }, [initializing, maintenanceRedirect, location.pathname])
+
+  if (initializing) {
     return (
       <div className="jf-page-shell flex items-center justify-center px-4">
         <div className="jf-surface p-6 text-sm text-slate-300">
@@ -63,7 +73,7 @@ export default function App() {
     )
   }
 
-  if (maintenanceMode && !user && !maintenanceAllowed) {
+  if (maintenanceRedirect) {
     return <Navigate to="/under-construction" replace />
   }
 

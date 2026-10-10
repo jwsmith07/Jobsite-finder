@@ -1,7 +1,7 @@
 # Jobsite Finder — Product Marketing Context
 
-**Document version:** v1.0
-**Last updated:** 2026-09-14
+**Document version:** v1.2
+**Last updated:** 2026-10-09
 **Status:** Founder approved
 **Purpose:** Master reference for positioning, copy, outreach and marketing planning.
 
@@ -71,14 +71,18 @@ Workers use Jobsite Finder free.
 
 The confirmed product direction allows workers to:
 
-- Create profiles and resumes.
+- Create worker profiles and upload existing résumés.
 - Discover active projects and available jobs.
 - Search and filter opportunities.
 - Apply to specific job postings.
 
 Workers cannot initiate unsolicited direct messages to contractors. Once a contractor initiates contact, both parties can reply.
 
-**Availability qualification:** Profile creation, resume uploads and applications have implementations. A dedicated resume builder and in-app messaging were not found in the reviewed application. Messaging remains planned until implemented and tested.
+**Permanent product exclusion — founder approved 2026-10-09:** Jobsite Finder does not offer a résumé builder and will not develop one. Résumé/CV creation, building, generation, writing and design tools are outside the product scope. Never describe them as existing, planned, upcoming or conditional on future testing. Approved wording is “create a worker profile,” “upload an existing résumé” or “share trade experience and a résumé.” This exclusion does not remove worker profiles, résumé uploads or job applications.
+
+**Existing-video exception — founder approved 2026-10-09:** Retain the original Scrimba explainer at `https://scrimba.com/explain/guide0o93ighc7`, including its existing narration and slides. This approval applies only to that existing external asset and its embed/direct link. It does not authorize résumé-builder claims in website copy, new marketing assets or future product development. The approved website pricing, first-jobsite trial and closed-beta qualifications remain authoritative.
+
+**Availability qualification:** Profile creation, résumé uploads and applications have implementations; their availability remains subject to closed-beta restrictions and testing. In-app messaging remains planned until implemented and tested.
 
 ### General contractors
 
@@ -435,7 +439,7 @@ These are proposed copy, not testimonials. Use feature and pricing copy only in 
 | Capability | Repository finding | Marketing treatment |
 |---|---|---|
 | Map discovery and project pages | Implementations exist, including search and filters | Confirm active-only eligibility, valid locations and freshness before making availability claims |
-| Worker profiles and resumes | Profile editing and resume uploads exist | Do not advertise a dedicated resume builder |
+| Worker profiles and résumé uploads | Profile editing and uploads of existing résumés exist | Résumé building/creation tools are permanently excluded; do not promise them as current or future functionality |
 | Project-linked jobs and applications | Posting, application and applicant-management code exists | Validate the complete journey before calling it beta-ready |
 | Company profiles | GC and subcontractor editing flows exist | Distinguish account editing from public profile availability |
 | GC claims and subcontractor participation | Claim, approval and participation code exists | Test the approved authority and privacy model |
@@ -532,5 +536,9 @@ These policies do not establish operational readiness.
 Do not treat mapped projects, preview graphics, synthetic data or planned architecture as customer traction.
 
 ## 19. Changelog
+
+- **v1.2 - Founder approved on 2026-10-09:** Restore the original Scrimba explainer unchanged as a narrowly approved existing-video exception. Website-copy and future-development exclusions remain permanent.
+
+- **v1.1 ? Founder approved on 2026-10-09:** Permanently excluded résumé-builder functionality and future development. Corrected worker direction to profile creation and uploads of existing résumés. Other approved product, pricing, trial, privacy and beta policies remain unchanged.
 
 - **v1.0 — Founder approved on 2026-09-14:** Incorporated founder decisions on CAD pricing, independent contractor billing, trial activation, active-only map scope, GC/subcontractor authority, private hiring records, company background and Canada-wide beta scope. Preserved unresolved launch, billing, access, verification and readiness decisions.

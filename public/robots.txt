@@ -27,5 +27,12 @@ Disallow: /login
 Disallow: /signin
 Disallow: /signup
 Disallow: /onboarding
+Disallow: /dashboard
+Disallow: /account
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /tests/
+Disallow: /.playwright-mcp/
+Disallow: /maplibre-poc
 
-Sitemap: https://jobsitefinder.ca/sitemap.xml
+Sitemap: https://www.jobsitefinder.ca/sitemap.xml

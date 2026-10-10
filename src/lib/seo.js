@@ -1,15 +1,20 @@
-export const SITE_URL = 'https://jobsitefinder.ca'
+export const SITE_URL = 'https://www.jobsitefinder.ca'
 export const SITE_NAME = 'Jobsite Finder'
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/opengraph.jpg`
 export const BRAND_SLOGAN = 'Built for the Trades. Powered by Real Jobsites.'
 
 export const defaultDescription =
-  'Discover construction jobsites, hiring companies, and job opportunities across Canada with Jobsite Finder.'
+  'Connect construction work with real jobsites across Canada. Workers sign up free. General contractors and subcontractors of every business size are welcome.'
 
 export const staticRouteMeta = {
   '/': {
-    title: 'Jobsite Finder | Construction Jobsites Across Canada',
-    description: 'Find active construction jobsites, open roles, and verified contractors across Canada.',
+    title: 'Construction Hiring & Jobsites | Jobsite Finder',
+    description: defaultDescription,
+    structuredData: ['organization', 'website'],
+  },
+  '/under-construction': {
+    title: 'Jobsite Finder in Development | Launch Updates',
+    description: 'Learn about Jobsite Finder, a construction hiring platform in development. Join the waitlist for updates for workers, general contractors and subcontractors.',
     structuredData: ['organization', 'website'],
   },
   '/about': {
@@ -22,15 +27,31 @@ export const staticRouteMeta = {
   },
   '/jobsites': {
     title: 'Jobsites Map | Jobsite Finder',
-    description: 'Explore public construction jobsites across Canada and find projects with hiring activity.',
+    description: 'Explore public construction project locations across Canada. View jobsite details and participating teams; a map listing does not mean the project is hiring.',
   },
   '/contact': {
     title: 'Contact | Jobsite Finder',
     description: 'Contact Joseph W. Smith and the Jobsite Finder team for beta access, support, and partnership inquiries.',
   },
+  '/signin': {
+    title: 'Sign In | Jobsite Finder',
+    description: 'Sign in to your Jobsite Finder worker or contractor account.',
+  },
+  '/signup': {
+    title: 'Worker & Contractor Sign Up | Jobsite Finder',
+    description: 'Create your free worker or company profile. Choose Worker, General Contractor or Subcontractor to get started.',
+  },
+  '/forgot-password': {
+    title: 'Reset Password | Jobsite Finder',
+    description: 'Request a password reset link for your Jobsite Finder account.',
+  },
+  '/reset-password': {
+    title: 'Set New Password | Jobsite Finder',
+    description: 'Choose a new password for your Jobsite Finder account.',
+  },
   '/faq': {
     title: 'FAQ | Jobsite Finder',
-    description: 'Answers to common questions about Jobsite Finder, public beta access, workers, contractors, jobsites, and pricing.',
+    description: 'Answers about worker accounts, contractor participation, project eligibility and Jobsite Finder’s construction hiring platform in development.',
   },
   '/community-guidelines': {
     title: 'Community Guidelines | Jobsite Finder',
@@ -63,8 +84,32 @@ export const staticRouteMeta = {
 }
 
 export function canonicalUrl(pathname = '/') {
-  const path = pathname === '/' ? '/' : pathname.replace(/\/+$/, '')
+  const cleanPath = String(pathname).split(/[?#]/)[0]
+  const path = !cleanPath || cleanPath === '/' ? '/' : `/${cleanPath.replace(/^\/+|\/+$/g, '')}`
   return `${SITE_URL}${path}`
+}
+
+// These routes currently render public pages; redirected and private routes are excluded.
+export const PUBLIC_SITEMAP_ROUTES = ['/', '/about', '/contact', '/jobsites', '/faq', '/privacy', '/terms']
+
+export function isPublicSeoRoute(pathname) {
+  return PUBLIC_SITEMAP_ROUTES.includes(pathname) || pathname === '/under-construction' || /^\/projects\/[^/]+$/.test(pathname)
+}
+
+export function robotsForPage(pathname, hostname) {
+  // Preserve existing production public-page policy until release indexing is approved.
+  return !['jobsitefinder.ca', 'www.jobsitefinder.ca'].includes(hostname) || !isPublicSeoRoute(pathname)
+    ? 'noindex, nofollow'
+    : null
+}
+
+export function socialImageUrl(image = DEFAULT_OG_IMAGE) {
+  try {
+    const url = new URL(image, `${SITE_URL}/`)
+    return url.protocol === 'https:' ? url.href : DEFAULT_OG_IMAGE
+  } catch {
+    return DEFAULT_OG_IMAGE
+  }
 }
 
 export function organizationSchema() {

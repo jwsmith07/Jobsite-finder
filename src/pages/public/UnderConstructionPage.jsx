@@ -1,21 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ArrowDown,
   ArrowRight,
-  BriefcaseBusiness,
   Building2,
   CheckCircle2,
   CircleDollarSign,
   ExternalLink,
   HardHat,
   Mail,
-  MapPin,
   Users,
-  X,
 } from 'lucide-react'
 import PageMeta from '../../components/ui/PageMeta'
 import Logo from '../../components/common/Logo'
-import { createWaitlistSignup } from '../../services/waitlistService'
+import { organizationSchema, staticRouteMeta, websiteSchema } from '../../lib/seo'
+
+const pageMeta = staticRouteMeta['/under-construction']
+const pageStructuredData = [organizationSchema(), websiteSchema()]
 
 const roleOptions = [
   'Trades Worker',
@@ -30,116 +30,23 @@ const jobsiteExplainerUrl = 'https://scrimba.com/explain/guide0o93ighc7'
 const contactEmail = 'info@jobsitefinder.ca'
 
 const stats = [
-  { icon: MapPin, title: 'Canada-Wide Platform', text: 'Built to connect construction activity across Canada.' },
-  { icon: HardHat, title: 'Built for Trades Workers', text: 'Profiles, resumes, jobsites, and hiring opportunities.' },
-  { icon: Building2, title: 'Built for Contractors', text: 'Create jobsites, post jobs, and manage applications.' },
-  { icon: Users, title: 'Real Jobsites. Real Opportunities.', text: 'A map-first network focused on active construction work.' },
+  { icon: HardHat, title: 'For workers', text: 'Planned profiles, jobsite discovery, job postings, and applications for trades roles.' },
+  { icon: Building2, title: 'For contractors', text: 'Planned company profiles, job postings, and tools to review applications.' },
+  { icon: Users, title: 'For projects', text: 'A planned Canada-wide map to help people discover active construction jobsites.' },
 ]
 
 const workCards = [
   {
     icon: HardHat,
-    title: 'For Workers',
-    points: ['Create a profile', 'Upload your resume', 'Discover jobsites', 'Apply for opportunities', 'Connect with hiring contractors'],
+    title: 'Planned tools for workers',
+    points: ['Build a worker profile', 'Share trade experience and a resume', 'Discover active construction projects', 'Apply to job postings', 'Connect with hiring contractors'],
   },
   {
     icon: Building2,
-    title: 'For Contractors',
-    points: ['Create jobsites', 'Manage project information', 'Post jobs', 'Review applications', 'Build your workforce'],
-  },
-  {
-    icon: BriefcaseBusiness,
-    title: 'For Industry',
-    points: ['Promote services', 'Connect with projects', 'Reach construction companies', 'Build industry relationships'],
+    title: 'Planned tools for contractors',
+    points: ['Create a company profile', 'Share construction job openings', 'Review applications', 'Find workers for project roles'],
   },
 ]
-
-const platformFeatures = [
-  'Interactive Jobsite Map',
-  'Active Construction Projects',
-  'Company Profiles',
-  'Project Claiming',
-  'Hiring Opportunities',
-  'Real-Time Project Updates',
-]
-
-const CANADA_MAP_CENTER = { lat: 57.2, lng: -96.5 }
-const CANADA_MAP_PADDING = {
-  top: 48,
-  right: 28,
-  bottom: 46,
-  left: 28,
-}
-const CANADA_GOOGLE_PLACE_ID = 'ChIJ2WrMN9MDDUsRpY9Doiq3a00'
-
-const previewCities = [
-  { city: 'Vancouver', lat: 49.2827, lng: -123.1207, count: 165, spread: 0.95 },
-  { city: 'Calgary', lat: 51.0447, lng: -114.0719, count: 190, spread: 0.82 },
-  { city: 'Edmonton', lat: 53.5461, lng: -113.4938, count: 145, spread: 0.78 },
-  { city: 'Saskatoon', lat: 52.1579, lng: -106.6702, count: 72, spread: 0.56 },
-  { city: 'Regina', lat: 50.4452, lng: -104.6189, count: 58, spread: 0.52 },
-  { city: 'Winnipeg', lat: 49.8951, lng: -97.1384, count: 118, spread: 0.72 },
-  { city: 'Toronto', lat: 43.6532, lng: -79.3832, count: 285, spread: 1.05 },
-  { city: 'Ottawa', lat: 45.4215, lng: -75.6972, count: 104, spread: 0.68 },
-  { city: 'Montreal', lat: 45.5019, lng: -73.5674, count: 205, spread: 0.88 },
-  { city: 'Quebec City', lat: 46.8139, lng: -71.2080, count: 76, spread: 0.58 },
-  { city: 'Halifax', lat: 44.6488, lng: -63.5752, count: 84, spread: 0.55 },
-  { city: 'St. John\'s', lat: 47.5615, lng: -52.7126, count: 46, spread: 0.45 },
-  { city: 'Kelowna', lat: 49.8880, lng: -119.4960, count: 54, spread: 0.44 },
-  { city: 'Victoria', lat: 48.4284, lng: -123.3656, count: 48, spread: 0.38 },
-  { city: 'Hamilton', lat: 43.2555, lng: -79.8720, count: 88, spread: 0.44 },
-  { city: 'Kitchener', lat: 43.4516, lng: -80.4925, count: 64, spread: 0.4 },
-  { city: 'London', lat: 42.9849, lng: -81.2453, count: 56, spread: 0.38 },
-  { city: 'Moncton', lat: 46.0878, lng: -64.7782, count: 42, spread: 0.36 },
-  { city: 'Prince George', lat: 53.9171, lng: -122.7497, count: 74, spread: 0.72 },
-  { city: 'Fort St. John', lat: 56.2524, lng: -120.8464, count: 58, spread: 0.76 },
-  { city: 'Grande Prairie', lat: 55.1707, lng: -118.7884, count: 82, spread: 0.74 },
-  { city: 'Fort McMurray', lat: 56.7267, lng: -111.3790, count: 96, spread: 0.86 },
-  { city: 'Lloydminster', lat: 53.2772, lng: -110.0050, count: 46, spread: 0.5 },
-  { city: 'Thompson', lat: 55.7435, lng: -97.8558, count: 54, spread: 0.82 },
-  { city: 'Brandon', lat: 49.8485, lng: -99.9501, count: 44, spread: 0.44 },
-  { city: 'Thunder Bay', lat: 48.3809, lng: -89.2477, count: 76, spread: 0.7 },
-  { city: 'Sault Ste. Marie', lat: 46.5219, lng: -84.3461, count: 48, spread: 0.48 },
-  { city: 'Sudbury', lat: 46.4917, lng: -80.9930, count: 68, spread: 0.58 },
-  { city: 'North Bay', lat: 46.3091, lng: -79.4608, count: 42, spread: 0.42 },
-  { city: 'Rouyn-Noranda', lat: 48.2399, lng: -79.0200, count: 44, spread: 0.56 },
-  { city: 'Saguenay', lat: 48.4280, lng: -71.0685, count: 58, spread: 0.58 },
-  { city: 'Sept-Iles', lat: 50.2133, lng: -66.3758, count: 46, spread: 0.62 },
-  { city: 'Labrador City', lat: 52.9390, lng: -66.9114, count: 40, spread: 0.68 },
-  { city: 'Goose Bay', lat: 53.3017, lng: -60.3261, count: 42, spread: 0.72 },
-  { city: 'Whitehorse', lat: 60.7212, lng: -135.0568, count: 70, spread: 0.96 },
-  { city: 'Yellowknife', lat: 62.4540, lng: -114.3718, count: 64, spread: 0.98 },
-  { city: 'Iqaluit', lat: 63.7467, lng: -68.5170, count: 42, spread: 0.86 },
-  { city: 'Inuvik', lat: 68.3607, lng: -133.7230, count: 30, spread: 0.72 },
-  { city: 'Rankin Inlet', lat: 62.8091, lng: -92.0853, count: 34, spread: 0.78 },
-  { city: 'Prince Rupert', lat: 54.3150, lng: -130.3208, count: 42, spread: 0.62 },
-  { city: 'Nanaimo', lat: 49.1659, lng: -123.9401, count: 38, spread: 0.38 },
-  { city: 'Charlottetown', lat: 46.2382, lng: -63.1311, count: 34, spread: 0.32 },
-  { city: 'Fredericton', lat: 45.9636, lng: -66.6431, count: 38, spread: 0.38 },
-]
-
-const previewStages = ['Planning', 'Active Construction', 'Near Completion']
-const previewProjects = previewCities.flatMap((city) =>
-  Array.from({ length: city.count }, (_, index) => {
-    const angle = index * 2.399963
-    const distance = Math.sqrt((index % 89) / 89) * city.spread
-    const latOffset = Math.sin(angle) * distance * 0.62
-    const lngOffset = Math.cos(angle) * distance
-    return {
-      id: `preview-${city.city}-${index}`,
-      project_name: `${city.city} Preview Jobsite ${index + 1}`,
-      city: city.city,
-      province: '',
-      stage: previewStages[index % previewStages.length],
-      source_type: index % 4 === 0 ? 'contractor_created' : 'public_project',
-      _hasValidCoords: true,
-      _lat: city.lat + latOffset,
-      _lng: city.lng + lngOffset,
-      _openRolesCount: index % 3 === 0 ? 3 : 0,
-      _openJobs: index % 3 === 0 ? [{ title: 'Trades Workers', trade: 'General Construction' }] : [],
-    }
-  }),
-)
 
 function SectionHeader({ eyebrow, title, text }) {
   return (
@@ -151,56 +58,81 @@ function SectionHeader({ eyebrow, title, text }) {
   )
 }
 
-function PlatformPreview({ onOpen }) {
+function ExplainerEmbed() {
+  const frame = useRef(null)
+  const container = useRef(null)
+  const [status, setStatus] = useState('loading')
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    // A frame load can fire for error pages; require the observed player message.
+    let timeout
+    let settled = false
+    const observer = new IntersectionObserver(entries => {
+      if (!settled && entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect()
+        timeout = window.setTimeout(() => { settled = true; setStatus('fallback') }, 10000)
+      }
+    })
+    observer.observe(container.current)
+    function ready(event) {
+      if (event.origin !== 'https://scrimba.com' || !frame.current || event.source !== frame.current.contentWindow || event.data?.type !== 'scrimba:embed-watching') return
+      settled = true
+      observer.disconnect()
+      window.clearTimeout(timeout)
+      setStatus('ready')
+    }
+    window.addEventListener('message', ready)
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(timeout)
+      window.removeEventListener('message', ready)
+    }
+  }, [attempt])
+
   return (
-    <div className="relative">
-      <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(245,180,0,0.12),transparent_62%)] blur-2xl" aria-hidden="true" />
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group relative z-10 block w-full cursor-zoom-in text-left focus:outline-none focus:ring-2 focus:ring-amber-300/70 focus:ring-offset-4 focus:ring-offset-[#07101c]"
-        aria-label="Open larger platform preview"
-      >
-        <img
-          src="/assets/platform-preview-mockup.png"
-          alt="Jobsite Finder desktop and mobile platform preview"
-          className="h-auto w-full max-w-[900px] object-contain drop-shadow-2xl transition-all duration-500 animate-float group-hover:scale-[1.02]"
-        />
-        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-slate-700 bg-slate-950/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-amber-200 opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
-          Click to zoom
-        </span>
-      </button>
+    <div ref={container} data-explainer-state={status} className="relative mx-auto mt-10 aspect-video w-full max-w-[800px] overflow-hidden rounded-lg border border-amber-300/35 bg-[#0f1216] shadow-2xl shadow-black/20">
+      {status !== 'ready' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-950 to-amber-950/30 px-4 text-center sm:gap-4 sm:px-8">
+          <p className="text-base font-black text-amber-200 sm:text-2xl">Jobsite Finder explainer</p>
+          <p className="max-w-md text-base leading-6 text-slate-200">Learn about our planned project-first platform.</p>
+          <div className="flex items-center justify-center gap-3">
+            <a href={jobsiteExplainerUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-lg bg-amber-400 px-4 text-sm font-bold text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">Open explainer <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></a>
+            {status === 'fallback' && <button type="button" onClick={() => { setStatus('loading'); setAttempt(value => value + 1) }} className="min-h-11 rounded-lg px-3 text-sm font-bold text-amber-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300">Retry</button>}
+          </div>
+        </div>
+      )}
+      {status !== 'fallback' && <iframe
+        key={attempt}
+        ref={frame}
+        src={jobsiteExplainerUrl}
+        title="Jobsite Finder platform concept explainer"
+        width="800"
+        height="450"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        onError={() => setStatus('fallback')}
+        aria-hidden={status !== 'ready'}
+        tabIndex={status === 'ready' ? 0 : -1}
+        style={{ border: 0 }}
+        className={'absolute inset-0 h-full w-full bg-[#0f1216] ' + (status === 'ready' ? 'opacity-100' : 'pointer-events-none opacity-0')}
+      />}
     </div>
   )
 }
 
-export default function UnderConstructionPage() {
+export default function UnderConstructionPage({ staticPreview = false } = {}) {
   const [form, setForm] = useState({ name: '', email: '', role: 'Trades Worker', message: '' })
   const [status, setStatus] = useState({ type: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
-
-  useEffect(() => {
-    if (!previewOpen) return undefined
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setPreviewOpen(false)
-    }
-
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.body.style.overflow = ''
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [previewOpen])
-
   async function handleSubmit(event) {
     event.preventDefault()
     setSubmitting(true)
     setStatus({ type: '', message: '' })
 
     try {
+      // Keep build-time rendering independent of backend clients and credentials.
+      const { createWaitlistSignup } = await import('../../services/waitlistService')
       const result = await createWaitlistSignup(form)
       setForm({ name: '', email: '', role: 'Trades Worker', message: '' })
       setStatus({
@@ -222,46 +154,52 @@ export default function UnderConstructionPage() {
   return (
     <div className="min-h-screen bg-[#0f1216] text-white">
       <PageMeta
-        title="Jobsite Finder | Built for the Trades"
-        description="Canada's construction workforce platform. Connect workers, subcontractors, and general contractors through real jobsites across Canada."
+        title={pageMeta.title}
+        description={pageMeta.description}
+          path="/under-construction"
+        structuredData={pageStructuredData}
       />
 
-      <section className="relative overflow-hidden">
+      <main id="learn-more">
+      <section className="relative overflow-hidden" aria-labelledby="landing-heading">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(251,191,36,0.18),transparent_30%),radial-gradient(circle_at_86%_18%,rgba(148,163,184,0.14),transparent_24%),linear-gradient(135deg,#0f1216,#151a20_52%,#0f1216)]" />
         <div className="absolute inset-0 opacity-30 [background-image:repeating-linear-gradient(135deg,transparent_0,transparent_18px,rgba(251,191,36,0.12)_18px,rgba(251,191,36,0.12)_20px)]" aria-hidden="true" />
 
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           <div className="mb-10 rounded-lg border border-slate-800/80 bg-slate-950/55 p-4 shadow-2xl shadow-black/25 backdrop-blur sm:p-6">
-            <Logo size="hero" imageClassName="mx-auto" />
+            <Logo
+              size="hero"
+              imageClassName="mx-auto"
+              width={1747}
+              height={519}
+              fetchPriority="high"
+            />
           </div>
         </div>
 
         <div className="relative mx-auto max-w-5xl px-4 pb-20 text-center sm:px-6 lg:px-8">
           <div className="mx-auto mb-8 max-w-4xl rounded-lg border border-amber-300/45 bg-slate-950/80 px-5 py-6 shadow-2xl shadow-amber-950/20 backdrop-blur sm:px-8 sm:py-7">
-            <p className="text-2xl font-black uppercase tracking-[0.18em] text-amber-300 drop-shadow sm:text-4xl">
-              🚧 UNDER CONSTRUCTION 🚧
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-300 drop-shadow sm:text-base">
+              In development
             </p>
             <p className="mx-auto mt-5 max-w-2xl text-lg font-bold text-white sm:text-xl">
-              Jobsite Finder is currently under active development.
+              Jobsite Finder is preparing a closed beta for Canadian construction workers, general contractors and subcontractors.
             </p>
             <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-              This page is a preview of the platform and features being built for our upcoming launch. The full website, interactive jobsite map, contractor dashboards, worker profiles, and hiring tools are coming soon.
-            </p>
-            <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-              Join our beta waitlist below to be among the first workers, subcontractors, and general contractors to access Jobsite Finder when we launch, and take our quick 25-question market research survey to help shape what we build.
+              Job postings, applications, and jobsite discovery are planned features and are not currently available for public use. Join the waitlist for launch updates.
             </p>
           </div>
           <p className="inline-flex rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-200">
             Built for the Trades. Powered by Real Jobsites.
           </p>
-          <h1 className="mt-6 text-4xl font-black leading-tight text-white sm:text-6xl lg:text-7xl">
-            Canada's Construction Workforce & Jobsite Platform
+          <h1 id="landing-heading" className="mt-6 text-4xl font-black leading-tight text-white sm:text-6xl lg:text-7xl">
+            Find Construction Jobs. Connect With Real Jobsites.
           </h1>
-          <p className="mx-auto mt-6 max-w-3xl text-xl font-semibold text-slate-200">
-            Connect with real jobsites, hiring contractors, and skilled trades workers across Canada.
+          <p className="mx-auto mt-6 max-w-3xl text-xl font-semibold leading-8 text-slate-200">
+            Explore construction projects and discover opportunities across Canada—from labourers and skilled tradespeople to supervisors and project managers.
           </p>
-          <p className="mx-auto mt-4 max-w-3xl text-lg text-slate-300">
-            Jobsite Finder is building a modern platform where contractors can create and manage jobsites while workers discover opportunities through an interactive map.
+          <p className="mx-auto mt-4 max-w-3xl text-lg leading-7 text-slate-300">
+            The planned platform will connect workers with active construction projects and jobsites, and help general contractors and subcontractors share openings and find people for their projects.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <a
@@ -285,14 +223,21 @@ export default function UnderConstructionPage() {
         </div>
       </section>
 
-      <main id="learn-more">
-        <section className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-labelledby="planned-overview-heading" className="border-y border-slate-800 bg-slate-950 px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <h2 id="planned-overview-heading" className="mb-6 text-center text-2xl font-black text-white sm:text-3xl">
+              A Canada-wide construction platform in development
+            </h2>
+            <p className="mx-auto mb-8 max-w-3xl text-center leading-7 text-slate-300">
+              Planned features are being designed for workers, general contractors, subcontractors, and projects. They are not yet available for public signup or use.
+            </p>
+          </div>
+          <div className="mx-auto grid max-w-7xl gap-4 sm:grid-cols-3">
             {stats.map(({ icon: Icon, title, text }) => (
               <div key={title} className="rounded-lg border border-slate-800 bg-slate-900 p-6">
                 <Icon className="h-8 w-8 text-amber-300" aria-hidden="true" />
-                <h2 className="mt-4 text-xl font-black text-white">{title}</h2>
-                <p className="mt-2 text-sm text-slate-300">{text}</p>
+                <h3 className="mt-4 text-xl font-black text-white">{title}</h3>
+                <p className="mt-2 text-base leading-7 text-slate-300 sm:text-sm sm:leading-6">{text}</p>
               </div>
             ))}
           </div>
@@ -300,26 +245,17 @@ export default function UnderConstructionPage() {
 
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <SectionHeader title="How Jobsite Finder Works" text="One platform for the construction workforce, contractors, and industry relationships." />
-            <div className="mx-auto mt-10 aspect-video w-full max-w-[800px] overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl shadow-black/20">
-              <iframe
-                src={jobsiteExplainerUrl}
-                title="Jobsite Finder Explainer"
-                width="800"
-                height="450"
-                style={{ border: 0 }}
-                allowFullScreen
-                className="block h-full w-full"
-              />
-            </div>
-            <div className="mt-12 grid gap-5 lg:grid-cols-3">
+            <SectionHeader title="Construction jobs and hiring, organized around jobsites" text="Jobsite Finder is being built to connect construction workers with opportunities and help general contractors and subcontractors find people for their projects. These tools are planned and are not yet live." />
+            <ExplainerEmbed />
+            <div className="mt-12 grid gap-5 lg:grid-cols-2">
               {workCards.map(({ icon: Icon, title, points }) => (
                 <div key={title} className="rounded-lg border border-slate-700 bg-slate-900 p-7">
                   <Icon className="h-10 w-10 text-amber-300" aria-hidden="true" />
                   <h3 className="mt-5 text-2xl font-black text-white">{title}</h3>
+                  <p className="mt-3 text-base leading-7 text-slate-300 sm:text-sm sm:leading-6">These features are planned and are not yet available for public use.</p>
                   <ul className="mt-6 space-y-3">
                     {points.map((point) => (
-                      <li key={point} className="flex gap-3 text-slate-200">
+                      <li key={point} className="flex gap-3 leading-7 text-slate-200">
                         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
                         <span>{point}</span>
                       </li>
@@ -328,27 +264,6 @@ export default function UnderConstructionPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="border-y border-slate-800 bg-[#07101c] px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Platform Preview</p>
-              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A Better Way to Find Construction Opportunities</h2>
-              <p className="mt-5 text-lg leading-8 text-slate-300">
-                Jobsite Finder helps workers, subcontractors, and general contractors connect through real active jobsites across Canada.
-              </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                {platformFeatures.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3 text-slate-100">
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
-                    <span className="font-semibold">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <PlatformPreview onOpen={() => setPreviewOpen(true)} />
           </div>
         </section>
 
@@ -361,17 +276,17 @@ export default function UnderConstructionPage() {
             <div className="mt-10 rounded-lg border border-amber-300/35 bg-amber-300/10 p-6 shadow-2xl shadow-black/20 sm:p-8">
               <h3 className="text-2xl font-black text-white sm:text-3xl">Trades Workers</h3>
               <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">Always free</p>
-              <p className="mt-6 text-lg text-slate-200">Jobsite Finder is free for workers to:</p>
+              <p className="mt-6 text-lg text-slate-200">Planned worker features will be free to:</p>
               <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                 {[
                   'Discover active jobsites',
                   'Browse construction jobs',
                   'Create a worker profile',
-                  'Build and share a resume',
+                  'Share trade experience and a resume',
                   'Apply for jobs',
                   'Connect with opportunities across Canada',
                 ].map((point) => (
-                  <li key={point} className="flex gap-3 text-slate-200">
+                  <li key={point} className="flex gap-3 leading-7 text-slate-200">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
                     <span>{point}</span>
                   </li>
@@ -386,11 +301,11 @@ export default function UnderConstructionPage() {
               <h3 className="text-2xl font-black text-white sm:text-3xl">General &amp; Sub Contractors</h3>
               <p className="mt-4 text-3xl font-black text-amber-300 sm:text-4xl">30-day free trial</p>
               <p className="mt-6 text-lg leading-8 text-slate-300">
-                Set up your company profile, add jobsites, post jobs, and start hiring.
+                Company profiles will be free. The 30-day trial starts when your company first activates hiring tools on its first jobsite.
               </p>
               <div className="mt-8 grid gap-8 md:grid-cols-2">
                 <div>
-                  <p className="text-2xl font-black text-white sm:text-3xl">$99 CAD per active jobsite per month</p>
+                  <p className="text-2xl font-black text-white sm:text-3xl">$99 CAD per active jobsite per month, for your company</p>
                   <ul className="mt-6 space-y-3">
                     {[
                       'Unlimited job postings',
@@ -398,7 +313,7 @@ export default function UnderConstructionPage() {
                       'Unlimited hires',
                       'No per-posting, per-application, or per-hire fees',
                     ].map((point) => (
-                      <li key={point} className="flex gap-3 text-slate-200">
+                      <li key={point} className="flex gap-3 leading-7 text-slate-200">
                         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
                         <span>{point}</span>
                       </li>
@@ -406,15 +321,15 @@ export default function UnderConstructionPage() {
                   </ul>
                 </div>
                 <div className="rounded-lg border border-amber-300/35 bg-amber-300/10 p-5 sm:p-6">
-                  <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-amber-200">Founding annual offer</h4>
-                  <p className="mt-3 text-2xl font-black text-white">$999 CAD per jobsite for the first year</p>
+                  <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-amber-200">Per-company hiring tools</h4>
+                  <p className="mt-3 text-2xl font-black text-white">Each contractor company pays for its own active jobsite plan.</p>
                 </div>
               </div>
 
               <p className="mt-8 border-t border-slate-700 pt-6 text-base leading-7 text-slate-300">
                 After the 30-day trial, the company profile remains free. Hiring tools require an active paid jobsite plan.
               </p>
-              <p className="mt-6 text-sm leading-6 text-slate-400">
+              <p className="mt-6 text-base leading-7 text-slate-300 sm:text-sm sm:leading-6">
                 Pricing preview for launch. Payment is not yet available. Signing up does not activate a trial or collect payment. Public signup is unavailable while the site is under construction.
               </p>
             </div>
@@ -480,7 +395,7 @@ export default function UnderConstructionPage() {
               </label>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={staticPreview || submitting}
                 className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 px-6 py-3 font-black text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? 'Joining...' : 'Join Waitlist'}
@@ -544,8 +459,8 @@ export default function UnderConstructionPage() {
 
         <section className="bg-slate-950 px-4 pb-10 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl border-t border-slate-800 pt-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Land Acknowledgement</p>
-            <p className="mx-auto mt-2 max-w-5xl text-xs leading-6 text-slate-500 sm:text-sm">
+            <p className="text-sm leading-6 font-semibold uppercase tracking-[0.16em] text-slate-400">Land Acknowledgement</p>
+            <p className="mx-auto mt-2 max-w-5xl text-base leading-7 text-slate-300 sm:text-sm sm:leading-6">
               Jobsite Finder Technologies Inc. respectfully acknowledges the traditional territories of Indigenous Peoples across Canada. We honour the enduring relationships Indigenous Nations have with these lands and recognize their contributions to our communities.
             </p>
           </div>
@@ -553,7 +468,7 @@ export default function UnderConstructionPage() {
       </main>
 
       <footer className="bg-[#0b0e12] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl text-sm text-slate-400">
+        <div className="mx-auto max-w-7xl text-base leading-7 text-slate-300 sm:text-sm">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="font-bold text-white">Jobsite Finder Technologies Inc.</p>
@@ -562,44 +477,23 @@ export default function UnderConstructionPage() {
                 <Mail className="h-4 w-4" aria-hidden="true" />
                 {contactEmail}
               </a>
+              <nav aria-label="Legal and contact" className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
+                {[['/privacy', 'Privacy'], ['/terms', 'Terms'], ['/contact', 'Contact']].map(([href, label]) => (
+                  <a key={href} href={href} className="rounded text-amber-300 underline underline-offset-4 transition hover:text-amber-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">
+                    {label}
+                  </a>
+                ))}
+              </nav>
               <p className="mt-4">Copyright &copy; 2026 Jobsite Finder Technologies Inc.</p>
               <p>All Rights Reserved.</p>
             </div>
-            <a href="/admin" className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 transition hover:text-amber-300">
+            <a href="/admin" className="text-sm leading-6 font-semibold uppercase tracking-[0.16em] text-slate-400 transition hover:text-amber-300">
               Admin Login
             </a>
           </div>
         </div>
       </footer>
 
-      {previewOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/92 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Large platform preview"
-          onClick={() => setPreviewOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setPreviewOpen(false)
-            }}
-            className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg transition hover:border-amber-300 hover:text-amber-200"
-            aria-label="Close platform preview"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-          <img
-            src="/assets/platform-preview-mockup.png"
-            alt="Large Jobsite Finder desktop and mobile platform preview"
-            className="max-h-[92vh] w-full max-w-[1400px] object-contain drop-shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   )
 }
-
